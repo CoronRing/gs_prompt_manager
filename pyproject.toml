@@ -1,0 +1,31 @@
+[project]
+name = "gs_prompt_manager"
+version = "0.0.4"
+authors = [
+  { name="Guan Huang" },
+]
+description = "A prompt manager that auto collect python class inherenting PromptBase."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "Apache-2.0"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["gs_prompt_manager"]
+package-dir = {"" = "src"}
+
+
+
+
+
+
