@@ -30,8 +30,7 @@ keywords = [
   "template",
   "prompt-management",
 ]
-license = "Apache-2.0"
-license-files = ["LICEN[CS]E*"]
+license = { text = "Apache-2.0" }
 dependencies = ["regex>=2022.1.18"]
 
 [project.urls]
