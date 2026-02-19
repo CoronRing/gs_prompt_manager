@@ -1,7 +1,7 @@
 import os
 import importlib.util
 import inspect
-from typing import Dict, List, Type, Optional
+from typing import Dict, List, Type, Optional, Union
 from gs_prompt_manager.prompt_base import PromptBase
 import logging
 
@@ -17,7 +17,7 @@ class PromptManager:
     """
 
     def __init__(
-        self, prompt_paths: Optional[str | List[str]] = None, verbose: bool = False
+        self, prompt_paths: Optional[Union[str, List[str]]] = None, verbose: bool = False
     ) -> None:
         """
         Initialize the PromptManager, searching for subclasses of PromptBase in the provided path(s).
