@@ -1,0 +1,27 @@
+# MANIFEST.in
+# Include important documentation files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include PUBLISHING.md
+include TEST_SUMMARY.md
+include requirements-dev.txt
+include pytest.ini
+
+# Include all documentation
+recursive-include docs *.md
+
+# Include test files (for users who want to run tests)
+recursive-include test *.py
+
+# Include GitHub templates
+recursive-include .github *.md *.yml *.yaml
+
+# Exclude cache and build artifacts
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *$py.class
+global-exclude *.so
+global-exclude .coverage
+global-exclude .pytest_cache

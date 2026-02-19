@@ -1,4 +1,4 @@
-from gs_prompt_manager import PromptBase, PromptManager
+from gs_prompt_manager import PromptBase
 
 class PromptHelloWorld(PromptBase):
     """

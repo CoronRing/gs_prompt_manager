@@ -1,20 +1,46 @@
 [project]
 name = "gs_prompt_manager"
 version = "0.0.4"
-authors = [
-  { name="Guan Huang" },
-]
-description = "A prompt manager that auto collect python class inherenting PromptBase."
+authors = [{ name = "Guan Huang" }]
+description = "A lightweight Python package for managing and organizing prompt templates with auto-discovery and variable substitution."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+]
+keywords = [
+  "prompt",
+  "prompt-engineering",
+  "llm",
+  "gpt",
+  "chatgpt",
+  "claude",
+  "ai",
+  "machine-learning",
+  "template",
+  "prompt-management",
 ]
 license = "Apache-2.0"
 license-files = ["LICEN[CS]E*"]
+dependencies = ["regex>=2022.1.18"]
 
 [project.urls]
+Homepage = "https://github.com/CoronRing/gs_prompt_manager"
+Documentation = "https://github.com/CoronRing/gs_prompt_manager/tree/main/docs"
+Repository = "https://github.com/CoronRing/gs_prompt_manager"
+Issues = "https://github.com/CoronRing/gs_prompt_manager/issues"
+Changelog = "https://github.com/CoronRing/gs_prompt_manager/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -22,10 +48,4 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["gs_prompt_manager"]
-package-dir = {"" = "src"}
-
-
-
-
-
-
+package-dir = { "" = "src" }
