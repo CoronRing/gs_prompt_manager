@@ -1,6 +1,6 @@
 [project]
 name = "gs_prompt_manager"
-version = "0.0.4"
+version = "0.0.5"
 authors = [{ name = "Guan Huang" }]
 description = "A lightweight Python package for managing and organizing prompt templates with auto-discovery and variable substitution."
 readme = "README.md"
