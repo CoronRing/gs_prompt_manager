@@ -9,14 +9,8 @@ from gs_prompt_manager import PromptBase
 class SimplePrompt(PromptBase):
     """A minimal prompt for testing."""
 
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Simple prompt: {input_text}"
-
-    def set_prompt_system(self):
-        return "You are a helpful assistant."
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["input_text"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {"input_text": "default text"}
@@ -39,14 +33,8 @@ class SimplePrompt(PromptBase):
 class PromptWithMacros(PromptBase):
     """A prompt with predefined macros."""
 
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Date: <<DATETIME>>, User: {user_name}"
-
-    def set_prompt_system(self):
-        return ""
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["user_name"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {}
@@ -73,8 +61,7 @@ class TestPromptBase:
         """Test that a simple prompt can be instantiated."""
         prompt = SimplePrompt()
         assert prompt.name == "SimplePrompt"
-        assert prompt.prompt_chat == "Simple prompt: {input_text}"
-        assert prompt.prompt_system == "You are a helpful assistant."
+        assert prompt.prompt == "Simple prompt: {input_text}"
 
     def test_get_metadata(self):
         """Test metadata retrieval."""
@@ -83,34 +70,27 @@ class TestPromptBase:
 
         assert isinstance(metadata, dict)
         assert metadata["name"] == "SimplePrompt"
-        assert metadata["prompt_chat"] == "Simple prompt: {input_text}"
-        assert metadata["prompt_system"] == "You are a helpful assistant."
+        assert metadata["prompt"] == "Simple prompt: {input_text}"
         assert "input_text" in metadata["default_prompt_pieces"]
         assert isinstance(metadata["tags"], list)
         assert isinstance(metadata["tools"], list)
 
-    def test_get_prompt_chat_with_default(self):
-        """Test getting prompt chat with default values."""
+    def test_get_prompt_with_default(self):
+        """Test getting prompt with default values."""
         prompt = SimplePrompt()
-        result = prompt.get_prompt_chat()
+        result = prompt()
         assert result == "Simple prompt: default text"
 
-    def test_get_prompt_chat_with_custom_value(self):
-        """Test getting prompt chat with custom values."""
+    def test_get_prompt_with_custom_value(self):
+        """Test getting prompt with custom values."""
         prompt = SimplePrompt()
-        result = prompt.get_prompt_chat({"input_text": "custom input"})
+        result = prompt({"input_text": "custom input"})
         assert result == "Simple prompt: custom input"
-
-    def test_get_prompt_system(self):
-        """Test getting prompt system."""
-        prompt = SimplePrompt()
-        result = prompt.get_prompt_system()
-        assert result == "You are a helpful assistant."
 
     def test_macro_replacement(self):
         """Test that predefined macros are replaced."""
         prompt = PromptWithMacros()
-        result = prompt.get_prompt_chat({"user_name": "Alice"})
+        result = prompt({"user_name": "Alice"})
         assert "Alice" in result
         assert "<<DATETIME>>" not in result
 
@@ -118,12 +98,12 @@ class TestPromptBase:
         """Test that missing required pieces raise an error."""
         prompt = PromptWithMacros()
         with pytest.raises(ValueError, match="Prompt piece 'user_name' required"):
-            prompt.get_prompt_chat({})
+            prompt({})
 
     def test_invalid_piece_warning(self, caplog):
         """Test that invalid pieces trigger warnings."""
         prompt = SimplePrompt()
-        prompt.get_prompt_chat({"invalid_key": "value", "input_text": "test"})
+        prompt({"invalid_key": "value", "input_text": "test"})
         assert "Unknown piece 'invalid_key'" in caplog.text
 
     def test_default_version(self):
@@ -135,7 +115,7 @@ class TestPromptBase:
         """Test direct instantiation with all parameters."""
         prompt = PromptBase(
             description="Test prompt",
-            prompt_chat="Hello {name}",
+            prompt="Hello {name}",
             prompt_pieces_available=["name"],
             prompt_pieces_default_value={"name": "World"},
             name="TestPrompt",
@@ -143,13 +123,13 @@ class TestPromptBase:
         )
         assert prompt.name == "TestPrompt"
         assert prompt.version == "1.0"
-        result = prompt.get_prompt_chat()
+        result = prompt()
         assert result == "Hello World"
 
     def test_missing_name_with_version_uses_classname(self):
         """Test that missing name uses class name as fallback when version is set."""
         prompt = PromptBase(
-            prompt_chat="Hello {name}",
+            prompt="Hello {name}",
             prompt_pieces_available=["name"],
             prompt_pieces_default_value={"name": "World"},
             version="1.0",
@@ -157,11 +137,9 @@ class TestPromptBase:
         # Name should default to class name
         assert prompt.name == "PromptBase"
 
-    def test_missing_both_prompts_raises_error(self):
-        """Test that missing both chat and system prompts raises an error."""
-        with pytest.raises(
-            ValueError, match="At least one of 'prompt_chat' or 'prompt_system'"
-        ):
+    def test_missing_prompt_raises_error(self):
+        """Test that missing prompt raises an error."""
+        with pytest.raises(ValueError, match="'prompt' must be set for"):
             PromptBase(
                 name="TestPrompt",
                 version="1.0",
@@ -170,10 +148,10 @@ class TestPromptBase:
             )
 
     def test_str_method(self):
-        """Test __str__ method returns prompt_chat."""
+        """Test __str__ method returns prompt."""
         prompt = SimplePrompt()
         result = str(prompt)
-        assert result == "Simple prompt: default text"
+        assert "Simple prompt" in result
 
     def test_add_prompt_predefine_value(self):
         """Test adding predefined values dynamically."""
@@ -195,14 +173,9 @@ class TestPromptBase:
             def __init__(self):
                 super().__init__(verbose=True)
 
-            def set_prompt_chat(self):
+            def set_prompt(self):
                 return "Test"
 
-            def set_prompt_system(self):
-                return ""
-
-            def set_prompt_pieces_available(self):
-                pass
 
             def set_prompt_pieces_default_value(self):
                 pass
@@ -235,19 +208,13 @@ class TestPromptBase:
 class TestPromptBasePieceExtraction:
     """Test automatic extraction of prompt pieces from template."""
 
-    def test_auto_extract_pieces_from_chat(self):
-        """Test automatic extraction of pieces from prompt_chat."""
+    def test_auto_extract_pieces_from_prompt(self):
+        """Test automatic extraction of pieces from prompt."""
 
         class AutoExtractPrompt(PromptBase):
-            def set_prompt_chat(self):
+            def set_prompt(self):
                 return "Hello {name}, you are {age} years old."
 
-            def set_prompt_system(self):
-                return ""
-
-            def set_prompt_pieces_available(self):
-                # Let parent class extract automatically
-                super().set_prompt_pieces_available()
 
             def set_prompt_pieces_default_value(self):
                 self.set_prompt_pieces_default_value_empty()
@@ -269,18 +236,12 @@ class TestPromptBasePieceExtraction:
         assert "age" in prompt.prompt_pieces_available
 
     def test_auto_extract_pieces_from_system(self):
-        """Test automatic extraction of pieces from prompt_system."""
+        """Test automatic extraction of pieces from prompt (system-style example)."""
 
         class AutoExtractSystemPrompt(PromptBase):
-            def set_prompt_chat(self):
-                return "User message"
-
-            def set_prompt_system(self):
+            def set_prompt(self):
                 return "You are {assistant_type} in {domain}."
-
-            def set_prompt_pieces_available(self):
-                super().set_prompt_pieces_available()
-
+            
             def set_prompt_pieces_default_value(self):
                 self.set_prompt_pieces_default_value_empty()
 
@@ -308,14 +269,9 @@ class TestPromptBaseValidation:
         """Test that defaults not in available pieces raise an error."""
 
         class InvalidDefaultPrompt(PromptBase):
-            def set_prompt_chat(self):
+            def set_prompt(self):
                 return "Hello {name}"
 
-            def set_prompt_system(self):
-                return ""
-
-            def set_prompt_pieces_available(self):
-                self.prompt_pieces_available = ["name"]
 
             def set_prompt_pieces_default_value(self):
                 # This is invalid - 'age' is not in available pieces
@@ -340,14 +296,9 @@ class TestPromptBaseValidation:
         """Test that invalid metadata types raise errors."""
 
         class InvalidMetadataPrompt(PromptBase):
-            def set_prompt_chat(self):
+            def set_prompt(self):
                 return "Test"
 
-            def set_prompt_system(self):
-                return ""
-
-            def set_prompt_pieces_available(self):
-                self.prompt_pieces_available = []
 
             def set_prompt_pieces_default_value(self):
                 self.prompt_pieces_default_value = {}

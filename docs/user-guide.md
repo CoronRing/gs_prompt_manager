@@ -68,7 +68,7 @@ The simplest prompt requires only a chat template and a name:
 from gs_prompt_manager import PromptBase
 
 class SimplePrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, World!"
 
     def set_name(self):
@@ -76,7 +76,7 @@ class SimplePrompt(PromptBase):
 
 # Use it
 prompt = SimplePrompt()
-print(prompt.get_prompt_chat())  # Output: Hello, World!
+print(prompt())  # Output: Hello, World!
 ```
 
 ### Prompt with Variables
@@ -85,11 +85,8 @@ Add variables using `{variable}` syntax:
 
 ```python
 class GreetingPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, {name}! How are you today?"
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["name"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {"name": "Guest"}
@@ -99,39 +96,42 @@ class GreetingPrompt(PromptBase):
 
 # Use it
 prompt = GreetingPrompt()
-print(prompt.get_prompt_chat({"name": "Alice"}))  # Hello, Alice! How are you today?
-print(prompt.get_prompt_chat())  # Hello, Guest! How are you today? (uses default)
+print(prompt({"name": "Alice"}))  # Hello, Alice! How are you today?
+print(prompt())  # Hello, Guest! How are you today? (uses default)
 ```
 
 ### Prompt with System Message
 
-Many LLM APIs support system messages:
+Many LLM APIs support separate system messages. Under the new API you create separate prompt classes for each variant:
 
 ```python
-class AssistantPrompt(PromptBase):
-    def set_prompt_chat(self):
+class AssistantChatPrompt(PromptBase):
+    def set_prompt(self):
         return "Please help me with: {task}"
 
-    def set_prompt_system(self):
-        return "You are a helpful assistant specialized in {domain}."
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["task", "domain"]
-
     def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {
-            "task": "general questions",
-            "domain": "general knowledge"
-        }
+        self.prompt_pieces_default_value = {"task": "general questions"}
 
     def set_name(self):
-        self.name = "AssistantPrompt"
+        self.name = "AssistantChatPrompt"
 
-# Use it
-prompt = AssistantPrompt()
-print(prompt.get_prompt_system({"domain": "programming"}))
+
+class AssistantSystemPrompt(PromptBase):
+    def set_prompt(self):
+        return "You are a helpful assistant specialized in {domain}."
+
+    def set_prompt_pieces_default_value(self):
+        self.prompt_pieces_default_value = {"domain": "general knowledge"}
+
+    def set_name(self):
+        self.name = "AssistantSystemPrompt"
+
+# Use them
+system = AssistantSystemPrompt()
+chat = AssistantChatPrompt()
+print(system({"domain": "programming"}))
 # Output: You are a helpful assistant specialized in programming.
-print(prompt.get_prompt_chat({"task": "debugging Python code"}))
+print(chat({"task": "debugging Python code"}))
 # Output: Please help me with: debugging Python code
 ```
 
@@ -141,12 +141,9 @@ Let gs_prompt_manager automatically extract variables from your template:
 
 ```python
 class AutoPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Process {input} and generate {output} in {format}"
 
-    def set_prompt_pieces_available(self):
-        # Automatically extract {input}, {output}, {format}
-        super().set_prompt_pieces_available()
 
     def set_prompt_pieces_default_value(self):
         # Set empty strings as defaults
@@ -164,16 +161,13 @@ Add dynamic values that are automatically generated:
 import datetime
 
 class LogPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Log entry at <<DATETIME>>: {message}"
 
     def set_prompt_predefine_value(self):
         self.prompt_predefine_value = {
             "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["message"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {"message": ""}
@@ -182,8 +176,9 @@ class LogPrompt(PromptBase):
         self.name = "LogPrompt"
 
 # Use it
+# Use it
 prompt = LogPrompt()
-print(prompt.get_prompt_chat({"message": "User logged in"}))
+print(prompt({"message": "User logged in"}))
 # Output: Log entry at 2024-01-15 14:30:00: User logged in
 ```
 
@@ -202,7 +197,7 @@ class DocumentedPrompt(PromptBase):
             version="1.0.0",
         )
 
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Summarize the following text:\n\n{text}"
 
     def set_name(self):
@@ -249,7 +244,7 @@ manager = PromptManager(prompt_paths=[
 greeting = manager.get_prompt("GreetingPrompt")
 
 # Use it
-result = greeting.get_prompt_chat({"name": "Alice"})
+result = greeting({"name": "Alice"})
 
 # Get all prompt instances
 all_prompts = manager.get_prompt_instances()
@@ -279,14 +274,14 @@ my_project/
 from gs_prompt_manager import PromptBase
 
 class WelcomePrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Welcome, {name}!"
 
     def set_name(self):
         self.name = "WelcomePrompt"
 
 class GoodbyePrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Goodbye, {name}! See you soon."
 
     def set_name(self):
@@ -300,7 +295,7 @@ from gs_prompt_manager import PromptManager
 
 manager = PromptManager(prompt_paths="./prompts")
 welcome = manager.get_prompt("WelcomePrompt")
-print(welcome.get_prompt_chat({"name": "Alice"}))
+print(welcome({"name": "Alice"}))
 ```
 
 ## Variable Substitution
@@ -311,7 +306,7 @@ Variables provided by users at runtime:
 
 ```python
 class EmailPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return """
         To: {recipient}
         From: {sender}
@@ -320,15 +315,12 @@ class EmailPrompt(PromptBase):
         {body}
         """
 
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["recipient", "sender", "subject", "body"]
-
     def set_name(self):
         self.name = "EmailPrompt"
 
 # Use it
 prompt = EmailPrompt()
-email = prompt.get_prompt_chat({
+email = prompt({
     "recipient": "alice@example.com",
     "sender": "bob@example.com",
     "subject": "Meeting Tomorrow",
@@ -359,7 +351,7 @@ import datetime
 import os
 
 class ContextPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return """
         Timestamp: <<DATETIME>>
         User: <<USERNAME>>
@@ -390,7 +382,7 @@ prompt = ContextPrompt()
 prompt.add_prompt_predefine_value("<<CONFIG>>", "production")
 
 # Use it
-result = prompt.get_prompt_chat({"task": "Process data"})
+result = prompt({"task": "Process data"})
 ```
 
 ## Best Practices
@@ -444,9 +436,6 @@ class WellDocumentedPrompt(PromptBase):
 ### 4. Validate Inputs
 
 ```python
-def set_prompt_pieces_available(self):
-    self.prompt_pieces_available = ["user_input", "context"]
-
 def set_prompt_pieces_default_value(self):
     # Always provide defaults
     self.prompt_pieces_default_value = {
@@ -470,11 +459,11 @@ class DataProcessorPromptV2(PromptBase):
 
 ```python
 class BaseAssistantPrompt(PromptBase):
-    def set_prompt_system(self):
+    def set_prompt(self):
         return "You are a helpful assistant."
 
 class TechnicalAssistantPrompt(BaseAssistantPrompt):
-    def set_prompt_system(self):
+    def set_prompt(self):
         return "You are a helpful technical assistant specialized in programming."
 
     def set_name(self):
@@ -507,7 +496,7 @@ print(manager.get_prompt_names())
 
 ```python
 # Option 1: Provide the variable
-prompt.get_prompt_chat({"name": "Alice"})
+prompt({"name": "Alice"})
 
 # Option 2: Set a default
 def set_prompt_pieces_default_value(self):

@@ -10,15 +10,8 @@ from gs_prompt_manager import PromptManager, PromptBase
 
 class SamplePrompt1(PromptBase):
     """Sample prompt for testing."""
-
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "This is sample prompt 1: {input}"
-
-    def set_prompt_system(self):
-        return ""
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["input"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {"input": "default"}
@@ -38,15 +31,9 @@ class SamplePrompt1(PromptBase):
 
 class SamplePrompt2(PromptBase):
     """Another sample prompt for testing."""
-
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "This is sample prompt 2"
 
-    def set_prompt_system(self):
-        return "System prompt for sample 2"
-
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {}
@@ -76,15 +63,10 @@ def temp_prompt_dir():
 from gs_prompt_manager import PromptBase
 
 class TempPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Temporary prompt"
     
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
+
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {}
     
@@ -120,14 +102,8 @@ def multi_prompt_dir():
 from gs_prompt_manager import PromptBase
 
 class MultiPrompt{i}(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Prompt {i}"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
     
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {{}}
@@ -286,15 +262,9 @@ def some_function():
 from gs_prompt_manager import PromptBase
 
 class DuplicatePrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Duplicate"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
+
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {}
     
@@ -334,15 +304,9 @@ class DuplicatePrompt(PromptBase):
 from gs_prompt_manager import PromptBase
 
 class NestedPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Nested prompt"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
+
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {}
     
@@ -388,7 +352,7 @@ class InitPrompt(PromptBase):
 class TestPromptManagerIntegration:
     """Integration tests for PromptManager with real prompt directory."""
 
-    def test_load_sample_prompts(self):
+    def test_load_sample_prompts_error(self):
         """Test loading the actual sample_prompts directory."""
         # Get the path to the sample_prompts directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -399,5 +363,10 @@ class TestPromptManagerIntegration:
             assert "PromptHelloWorld" in manager.get_prompt_names()
 
             prompt = manager.get_prompt("PromptHelloWorld")
-            result = prompt.get_prompt_chat()
-            assert result == "Hello, World!"
+            try:
+                # expect: ValueError: Prompt piece 'world' required in prompt input for 
+                result = prompt()
+            except Exception as e:
+                assert isinstance(e, ValueError)
+                assert "world" in str(e)
+            

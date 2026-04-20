@@ -240,7 +240,7 @@ class TestFeatureName:
         prompt = SimplePrompt()
 
         # Act
-        result = prompt.get_prompt_chat()
+        result = prompt()
 
         # Assert
         assert result == "expected value"

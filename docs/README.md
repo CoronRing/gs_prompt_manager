@@ -21,14 +21,14 @@ pip install gs-prompt-manager
 from gs_prompt_manager import PromptBase
 
 class MyPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, {name}!"
 
     def set_name(self):
         self.name = "MyPrompt"
 
 prompt = MyPrompt()
-print(prompt.get_prompt_chat({"name": "World"}))
+print(prompt({"name": "World"}))
 ```
 
 See the **[User Guide](user-guide.md)** for complete documentation.

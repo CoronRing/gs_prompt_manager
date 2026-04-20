@@ -2,15 +2,18 @@ from gs_prompt_manager import PromptBase
 
 class PromptHelloWorld(PromptBase):
     """
-    A simple prompt that returns "Hello, World!".
+    Chat variant: says hello to the provided `world` piece.
     """
 
-    def set_prompt_chat(self) -> str:
-        """
-        Generate the prompt string.
+    def set_prompt(self) -> str:
+        return "Hello {world}"
 
-        Returns:
-            str: The prompt string "Hello, World!".
-        """
-        return "Hello, World!"
+
+class PromptHelloWorldSystem(PromptBase):
+    """
+    System variant: says hello to the provided `name` piece.
+    """
+
+    def set_prompt(self) -> str:
+        return "Hello {name}"
     

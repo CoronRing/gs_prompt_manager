@@ -10,19 +10,16 @@ Real-world usage examples for gs_prompt_manager.
 from gs_prompt_manager import PromptBase
 
 class ChatbotPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "User: {user_message}\nAssistant:"
-
-    def set_prompt_system(self):
-        return "You are a helpful AI assistant."
 
     def set_name(self):
         self.name = "ChatbotPrompt"
 
 # Use it
 prompt = ChatbotPrompt()
-user_msg = prompt.get_prompt_chat({"user_message": "What is Python?"})
-system_msg = prompt.get_prompt_system()
+user_msg = prompt({"user_message": "What is Python?"})
+system_msg = None
 ```
 
 ### Prompt with Defaults
@@ -31,15 +28,12 @@ system_msg = prompt.get_prompt_system()
 from gs_prompt_manager import PromptBase
 
 class CodeReviewPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return """Review this {language} code:
 
 ```{language}
 {code}
 ```"""
-
-   def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["language", "code"]
 
     def set_prompt_pieces_default_value(self):
         self.prompt_pieces_default_value = {
@@ -51,7 +45,7 @@ class CodeReviewPrompt(PromptBase):
         self.name = "CodeReviewPrompt"
 
 prompt = CodeReviewPrompt()
-review = prompt.get_prompt_chat({"code": "def add(a, b): return a + b"})
+review = prompt({"code": "def add(a, b): return a + b"})
 ````
 
 ## LLM Integration
@@ -62,30 +56,36 @@ review = prompt.get_prompt_chat({"code": "def add(a, b): return a + b"})
 from gs_prompt_manager import PromptBase
 import openai
 
-class AssistantPrompt(PromptBase):
-    def set_prompt_chat(self):
+class AssistantChatPrompt(PromptBase):
+    def set_prompt(self):
         return "{user_input}"
 
-    def set_prompt_system(self):
+    def set_prompt_pieces_default_value(self):
+        self.prompt_pieces_default_value = {"user_input": ""}
+
+    def set_name(self):
+        self.name = "AssistantChatPrompt"
+
+
+class AssistantSystemPrompt(PromptBase):
+    def set_prompt(self):
         return "You are a helpful assistant specialized in {domain}."
 
     def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {
-            "user_input": "",
-            "domain": "general knowledge"
-        }
+        self.prompt_pieces_default_value = {"domain": "general knowledge"}
 
     def set_name(self):
-        self.name = "AssistantPrompt"
+        self.name = "AssistantSystemPrompt"
 
 client = openai.OpenAI(api_key="your-api-key")
-prompt = AssistantPrompt()
+chat_prompt = AssistantChatPrompt()
+system_prompt = AssistantSystemPrompt()
 
-response = client.chat.completions.create(
+    response = client.chat.completions.create(
     model="gpt-4",
     messages=[
-        {"role": "system", "content": prompt.get_prompt_system({"domain": "programming"})},
-        {"role": "user", "content": prompt.get_prompt_chat({"user_input": "Explain decorators"})}
+        {"role": "system", "content": system_prompt({"domain": "programming"})},
+        {"role": "user", "content": chat_prompt({"user_input": "Explain decorators"})}
     ]
 )
 
@@ -98,26 +98,32 @@ print(response.choices[0].message.content)
 from gs_prompt_manager import PromptBase
 import anthropic
 
-class AnalysisPrompt(PromptBase):
-    def set_prompt_chat(self):
+class AnalysisChatPrompt(PromptBase):
+    def set_prompt(self):
         return "Analyze: {content}"
 
-    def set_prompt_system(self):
+    def set_name(self):
+        self.name = "AnalysisChatPrompt"
+
+
+class AnalysisSystemPrompt(PromptBase):
+    def set_prompt(self):
         return "You are an expert analyst."
 
     def set_name(self):
-        self.name = "AnalysisPrompt"
+        self.name = "AnalysisSystemPrompt"
 
 client = anthropic.Anthropic(api_key="your-api-key")
-prompt = AnalysisPrompt()
+chat_prompt = AnalysisChatPrompt()
+system_prompt = AnalysisSystemPrompt()
 
-message = client.messages.create(
+    message = client.messages.create(
     model="claude-3-opus-20240229",
     max_tokens=1024,
-    system=prompt.get_prompt_system(),
+    system=system_prompt(),
     messages=[{
         "role": "user",
-        "content": prompt.get_prompt_chat({"content": "Market data..."})
+        "content": chat_prompt({"content": "Market data..."})
     }]
 )
 
@@ -143,14 +149,14 @@ my_project/
 from gs_prompt_manager import PromptBase
 
 class FriendlyChat(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello! {message}"
 
     def set_name(self):
         self.name = "FriendlyChat"
 
 class ProfessionalChat(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Dear {recipient}, {message}"
 
     def set_name(self):
@@ -165,8 +171,8 @@ from gs_prompt_manager import PromptManager
 manager = PromptManager(prompt_paths="./prompts")
 print("Available:", manager.get_prompt_names())
 
-friendly = manager.get_prompt("FriendlyChat")
-professional = manager.get_prompt("ProfessionalChat")
+    friendly = manager.get_prompt("FriendlyChat")
+    professional = manager.get_prompt("ProfessionalChat")
 ```
 
 ## Multi-Agent System
@@ -175,46 +181,59 @@ professional = manager.get_prompt("ProfessionalChat")
 from gs_prompt_manager import PromptBase
 import openai
 
-class ResearcherPrompt(PromptBase):
-    def set_prompt_system(self):
-        return "You are a research analyst."
-
-    def set_prompt_chat(self):
+class ResearcherChatPrompt(PromptBase):
+    def set_prompt(self):
         return "Research: {topic}"
 
     def set_name(self):
-        self.name = "ResearcherPrompt"
+        self.name = "ResearcherChatPrompt"
 
-class WriterPrompt(PromptBase):
-    def set_prompt_system(self):
-        return "You are a technical writer."
 
-    def set_prompt_chat(self):
+class ResearcherSystemPrompt(PromptBase):
+    def set_prompt(self):
+        return "You are a research analyst."
+
+    def set_name(self):
+        self.name = "ResearcherSystemPrompt"
+
+
+class WriterChatPrompt(PromptBase):
+    def set_prompt(self):
         return "Write documentation for: {research}"
 
     def set_name(self):
-        self.name = "WriterPrompt"
+        self.name = "WriterChatPrompt"
+
+
+class WriterSystemPrompt(PromptBase):
+    def set_prompt(self):
+        return "You are a technical writer."
+
+    def set_name(self):
+        self.name = "WriterSystemPrompt"
 
 def create_documentation(topic):
     client = openai.OpenAI(api_key="your-api-key")
 
     # Agent 1: Research
-    researcher = ResearcherPrompt()
+    researcher_sys = ResearcherSystemPrompt()
+    researcher_chat = ResearcherChatPrompt()
     research = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": researcher.get_prompt_system()},
-            {"role": "user", "content": researcher.get_prompt_chat({"topic": topic})}
+            {"role": "system", "content": researcher_sys()},
+            {"role": "user", "content": researcher_chat({"topic": topic})}
         ]
     ).choices[0].message.content
 
     # Agent 2: Write
-    writer = WriterPrompt()
+    writer_sys = WriterSystemPrompt()
+    writer_chat = WriterChatPrompt()
     draft = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": writer.get_prompt_system()},
-            {"role": "user", "content": writer.get_prompt_chat({"research": research})}
+            {"role": "system", "content": writer_sys()},
+            {"role": "user", "content": writer_chat({"research": research})}
         ]
     ).choices[0].message.content
 
@@ -231,11 +250,8 @@ docs = create_documentation("Python async/await")
 from gs_prompt_manager import PromptBase
 
 class SmartPrompt(PromptBase):
-    def set_prompt_chat(self):
-        return "Process {input} and save to {output} in {format}"
-
-    def set_prompt_pieces_available(self):
-        super().set_prompt_pieces_available()  # Auto-extracts variables
+    def set_prompt(self):
+        return "Process {input} and save to {output} in {format}"uto-extracts variables
 
     def set_prompt_pieces_default_value(self):
         self.set_prompt_pieces_default_value_empty()
@@ -243,8 +259,8 @@ class SmartPrompt(PromptBase):
     def set_name(self):
         self.name = "SmartPrompt"
 
-prompt = SmartPrompt()
-result = prompt.get_prompt_chat({
+    prompt = SmartPrompt()
+    result = prompt({
     "input": "data.csv",
     "output": "report.pdf",
     "format": "PDF"
@@ -258,7 +274,7 @@ from gs_prompt_manager import PromptBase
 import datetime
 
 class LogPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "[<<TIMESTAMP>>] {level}: {message}"
 
     def set_prompt_predefine_value(self):
@@ -269,8 +285,9 @@ class LogPrompt(PromptBase):
     def set_name(self):
         self.name = "LogPrompt"
 
+# Note: use callable prompt instances now
 log = LogPrompt()
-print(log.get_prompt_chat({"level": "ERROR", "message": "Failed"}))
+print(log({"level": "ERROR", "message": "Failed"}))
 # [2024-01-15T14:30:00] ERROR: Failed
 ```
 
@@ -284,7 +301,7 @@ try:
 
     if "MyPrompt" in manager.get_prompt_names():
         prompt = manager.get_prompt("MyPrompt")
-        result = prompt.get_prompt_chat({"var": "value"})
+        result = prompt({"var": "value"})
     else:
         print("Prompt not found")
 
@@ -299,7 +316,7 @@ import pytest
 from gs_prompt_manager import PromptBase
 
 class GreetingPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, {name}!"
 
     def set_name(self):
@@ -307,7 +324,7 @@ class GreetingPrompt(PromptBase):
 
 def test_prompt():
     prompt = GreetingPrompt()
-    assert prompt.get_prompt_chat({"name": "Alice"}) == "Hello, Alice!"
+    assert prompt({"name": "Alice"}) == "Hello, Alice!"
     assert prompt.name == "GreetingPrompt"
 ```
 

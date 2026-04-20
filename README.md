@@ -12,7 +12,7 @@ A lightweight Python package for managing and organizing prompt templates. Autom
 - 🔍 **Auto-discovery**: Automatically finds and loads prompt classes from specified directories
 - 📦 **Template Management**: Define reusable prompt templates with variable substitution
 - 🎯 **Type Safety**: Built-in validation for prompt pieces and metadata
-- 🔧 **Flexible**: Support for both chat and system prompts
+ - 🔧 **Flexible**: Single `prompt` per class; create chat/system variants as separate prompt classes
 - 📝 **Metadata**: Rich metadata support for prompts (tags, tools, examples, etc.)
 - 🔄 **Predefined Macros**: Support for datetime and custom macro substitution
 - 🏗️ **Extensible**: Easy to subclass and customize for specific use cases
@@ -35,18 +35,15 @@ from gs_prompt_manager import PromptBase
 class GreetingPrompt(PromptBase):
     """A simple greeting prompt."""
 
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, {name}! Welcome to {place}."
-
-    def set_prompt_system(self):
-        return "You are a friendly assistant."
 
     def set_name(self):
         self.name = "GreetingPrompt"
 
 # Use the prompt
 prompt = GreetingPrompt()
-print(prompt.get_prompt_chat({"name": "Alice", "place": "Wonderland"}))
+print(prompt({"name": "Alice", "place": "Wonderland"}))
 # Output: Hello, Alice! Welcome to Wonderland.
 ```
 
@@ -63,7 +60,7 @@ print(manager.get_prompt_names())
 
 # Get a specific prompt
 greeting = manager.get_prompt("GreetingPrompt")
-result = greeting.get_prompt_chat({"name": "Bob"})
+result = greeting({"name": "Bob"})
 ```
 
 ## 📖 Documentation
@@ -81,7 +78,7 @@ The base class for all prompt templates. Subclass it to create custom prompts:
 
 ```python
 class MyPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Your template with {variables}"
 
     def set_name(self):
@@ -105,7 +102,7 @@ Two types of variables are supported:
 2. **Predefined Macros** - `<<MACRO>>`: System-generated values
 
 ```python
-def set_prompt_chat(self):
+def set_prompt(self):
     return "User {name} logged in at <<DATETIME>>"
 ```
 

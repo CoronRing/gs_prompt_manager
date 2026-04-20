@@ -17,8 +17,7 @@ class PromptBase:
         self,
         description: str = "",
         description_long: str = "",
-        prompt_chat: str = "",
-        prompt_system: str = "",
+        prompt: str = "",
         prompt_pieces_available: list = None,
         prompt_pieces_default_value: dict = None,
         prompt_predefine_value: dict = None,
@@ -38,8 +37,7 @@ class PromptBase:
         self.description = description
         self.description_long = description_long
 
-        self.prompt_chat = prompt_chat
-        self.prompt_system = prompt_system
+        self.prompt = prompt
         self.prompt_pieces_available = (
             prompt_pieces_available if prompt_pieces_available is not None else []
         )
@@ -73,15 +71,10 @@ class PromptBase:
         self.set_associated_prompt()
         self.associated_prompt_names = list(self.associated_prompt.keys())
 
-        if not self.prompt_chat:
-            set_val = self.set_prompt_chat()
+        if not self.prompt:
+            set_val = self.set_prompt()
             if set_val:
-                self.prompt_chat = set_val
-
-        if not self.prompt_system:
-            set_val = self.set_prompt_system()
-            if set_val:
-                self.prompt_system = set_val
+                self.prompt = set_val
 
         if not self.name:
             set_val = self.set_name()
@@ -110,16 +103,9 @@ class PromptBase:
     ###### Abstract set_* methods for subclass implementation #######
 
     @abstractmethod
-    def set_prompt_chat(self):
+    def set_prompt(self):
         """
-        Subclass defines self.prompt_chat (template str).
-        """
-        pass
-    
-    @abstractmethod
-    def set_prompt_system(self):
-        """
-        Subclass defines self.prompt_system (template str).
+        Subclass defines self.prompt (template str).
         """
         pass
     
@@ -170,20 +156,15 @@ class PromptBase:
     def set_prompt_pieces_available(self):
         """
         Subclass defines self.prompt_pieces_available as a list.
-        Default: extract {key} names from prompt_chat/system.
+        Default: extract {key} names from prompt.
         """
         try:
-            self.prompt_pieces_available = regex.findall(r"\{(.*?)\}", self.prompt_chat)
-            # add system
-            self.prompt_pieces_available += regex.findall(
-                r"\{(.*?)\}", self.prompt_system
-            )
+            self.prompt_pieces_available = regex.findall(r"\{(.*?)\}", self.prompt)
         except Exception as e:
             logger.error(
                 (
-                    f"Error extracting prompt pieces from prompt_chat in class '{self.name}':\n",
-                    f"Prompt user: {self.prompt_chat}",
-                    f"Prompt system: {self.prompt_system}",
+                    f"Error extracting prompt pieces from prompt in class '{self.name}':\n",
+                    f"Prompt: {self.prompt}",
                     f"Exception: {e}",
                 )
             )
@@ -238,11 +219,8 @@ class PromptBase:
                 raise ValueError(
                     f"Required parameter '{param}' not set for '{type(self).__name__}'."
                 )
-        # if non of "prompt_chat and system is set, error
-        if not self.prompt_chat and not self.prompt_system:
-            raise ValueError(
-                f"At least one of 'prompt_chat' or 'prompt_system' must be set for '{self.name}'."
-            )
+        if not self.prompt:
+            raise ValueError(f"'prompt' must be set for '{self.name}'.")
 
     ###### API #######
 
@@ -264,8 +242,7 @@ class PromptBase:
                 )
 
         return {
-            "prompt_chat": self.prompt_chat,
-            "prompt_system": self.prompt_system,
+            "prompt": self.prompt,
             "description": self.description,
             "description_long": self.description_long,
             "name": self.name,
@@ -285,7 +262,7 @@ class PromptBase:
         self, base: str, prompt_pieces: dict = None, no_warning: bool = False
     ) -> str:
         """
-        Fill the prompt_chat string's placeholders with provided (or default) prompt_pieces and predef macros.
+        Fill the prompt string's placeholders with provided (or default) prompt_pieces and predef macros.
         """
         prompt_pieces = prompt_pieces or {}
 
@@ -331,27 +308,37 @@ class PromptBase:
                     )
         return result
 
-    def get_prompt_chat(
-        self, prompt_pieces: dict = None, no_warning: bool = False
-    ) -> str:
+    def get_prompt(self, prompt_pieces: dict = None, no_warning: bool = False) -> str:
         """
-        Get the filled prompt_chat string with provided (or default) prompt_pieces and predef macros.
+        Get the filled prompt string with provided (or default) prompt_pieces and predef macros.
         """
-        return self._get_prompt(self.prompt_chat, prompt_pieces, no_warning=no_warning)
-
-    def get_prompt_system(
-        self, prompt_pieces: dict = None, no_warning: bool = False
-    ) -> str:
-        """
-        Get the filled prompt_system string with provided (or default) prompt_pieces and predef macros.
-        """
-        return self._get_prompt(
-            self.prompt_system, prompt_pieces, no_warning=no_warning
-        )
+        return self._get_prompt(self.prompt, prompt_pieces, no_warning=no_warning)
 
     def __str__(self) -> str:
-        return self.get_prompt_chat() if self.prompt_chat else self.get_prompt_system()
+        # return raw, if default exist, insert, if required, leave as is ie {item}
+        # Start from the raw template
+        result = self.prompt
 
+        # Insert any available default values; leave required placeholders unchanged
+        for key in self.prompt_pieces_available:
+            if (
+                key in self.prompt_pieces_default_value
+                and self.prompt_pieces_default_value[key] is not None
+            ):
+                result = result.replace(f"{{{key}}}", str(self.prompt_pieces_default_value[key]))
+
+        # Substitute predefined macros like <<DATETIME>> when available
+        for key, v in (self.prompt_predefine_value or {}).items():
+            result = result.replace(key, str(v))
+
+        return result
+
+    def __call__(self, prompt_pieces: dict = None, no_warning: bool = False) -> str:
+        """
+        Allow prompt instances to be called like a function to render the prompt.
+        Example: prompt = manager.get_prompt('X'); result = prompt({'var':'value'})
+        """
+        return self.get_prompt(prompt_pieces, no_warning=no_warning)
     @staticmethod
     def _escape_braces(line: str) -> str:
         """
@@ -364,43 +351,3 @@ class PromptBase:
 
     ###### Example MVP usage/test #######
     # This part can be removed in production modules
-
-
-if __name__ == "__main__":
-
-    class SummarizePrompt(PromptBase):
-        def set_prompt_chat(self):
-            return "Summarize the following text: {Tiny} <<DATETIME>>"
-
-        def set_prompt_predefine_value(self):
-            self.prompt_predefine_value = {
-                "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            }
-
-        def set_prompt_pieces_default_value(self):
-            self.prompt_pieces_default_value = {"text": "(no text provided)"}
-
-        def set_prompt_pieces_available(self):
-            self.prompt_pieces_available = ["text"]
-
-        def set_name(self):
-            self.name = "SummarizePrompt"
-
-        def set_tools(self):
-            self.tools = []
-
-        def set_associated_prompt(self):
-            self.associated_prompt = {}
-
-    class Tiny(PromptBase):
-        def set_prompt_chat(self):
-            return "I am layer 2: {layer3}"
-
-    class layer3(PromptBase):
-        def set_prompt_chat(self):
-            return "I am layer 3"
-
-    sp = SummarizePrompt()
-    tiny = Tiny()
-    print(sp.get_prompt({"Tiny": tiny}))
-    print(sp.get_metadata())
