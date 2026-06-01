@@ -1,6 +1,6 @@
 [project]
 name = "gs_prompt_manager"
-version = "0.1.0"
+version = "0.0.6"
 authors = [{ name = "Guan Huang" }]
 description = "A lightweight Python package for managing and organizing prompt templates with auto-discovery and variable substitution."
 readme = "README.md"
@@ -32,6 +32,12 @@ keywords = [
 ]
 license = { text = "Apache-2.0" }
 dependencies = ["regex>=2022.1.18"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/CoronRing/gs_prompt_manager"

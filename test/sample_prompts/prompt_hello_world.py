@@ -16,4 +16,3 @@ class PromptHelloWorldSystem(PromptBase):
 
     def set_prompt(self) -> str:
         return "Hello {name}"
-    

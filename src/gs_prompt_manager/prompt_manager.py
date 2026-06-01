@@ -3,6 +3,13 @@ import importlib.util
 import inspect
 from typing import Dict, List, Type, Optional, Union
 from gs_prompt_manager.prompt_base import PromptBase
+from gs_prompt_manager.prompt_group import (
+    PromptGroup,
+    _GROUP_NAME_ATTR,
+    _GROUP_KEY_ATTR,
+    derive_decorator_key,
+    resolve_auto_group,
+)
 import logging
 
 # Configure logging
@@ -33,6 +40,7 @@ class PromptManager:
         self.prompt_paths: List[str] = []
         self.prompt_objects: Dict[str, Type[PromptBase]] = {}
         self.prompt_instances: Dict[str, PromptBase] = {}
+        self.prompt_groups: Dict[str, PromptGroup] = {}
 
         try:
             if prompt_paths is None:
@@ -66,9 +74,15 @@ class PromptManager:
                         exc_info=True,
                     )
 
+            # Resolve prompt groups (decorator > suffix auto-detect > solo).
+            self._resolve_groups()
+
             if self.verbose:
                 logger.info(
                     f"PromptManager: Loaded {len(self.prompt_instances)} prompt classes: {list(self.prompt_instances.keys())}"
+                )
+                logger.info(
+                    f"PromptManager: Resolved {len(self.prompt_groups)} prompt groups: {list(self.prompt_groups.keys())}"
                 )
 
         except Exception as e:
@@ -218,3 +232,64 @@ class PromptManager:
             List[str]: List of prompt names.
         """
         return list(self.prompt_instances.keys())
+
+    ###### Prompt group API #######
+
+    def _resolve_groups(self) -> None:
+        """
+        Build self.prompt_groups from self.prompt_instances. Resolution priority:
+            1. @prompt_group decorator on the class
+            2. Recognized suffix in class name (chat/system/pre/post/message/prompt)
+            3. Solo group named after the class with key "default"
+
+        Key collisions within a group are logged and the conflicting prompt is
+        skipped (only the first one assigned to a given key is kept).
+        """
+        self.prompt_groups = {}
+
+        for class_name, instance in self.prompt_instances.items():
+            cls = type(instance)
+
+            group_name = getattr(cls, _GROUP_NAME_ATTR, None)
+            if group_name:
+                explicit_key = getattr(cls, _GROUP_KEY_ATTR, None)
+                key = derive_decorator_key(class_name, group_name, explicit_key)
+            else:
+                auto = resolve_auto_group(class_name)
+                if auto is not None:
+                    group_name, key = auto
+                else:
+                    group_name, key = class_name, "default"
+
+            group = self.prompt_groups.setdefault(group_name, PromptGroup(group_name))
+            if key in group:
+                logger.warning(
+                    f"PromptGroup '{group_name}' already has key '{key}' "
+                    f"(held by {type(group.get_prompt(key)).__name__}); "
+                    f"skipping '{class_name}'."
+                )
+                continue
+            group.add(key, instance)
+
+    def get_prompt_group(self, name: str) -> PromptGroup:
+        """
+        Get a prompt group by name.
+
+        Raises:
+            ValueError: If the group is not found.
+        """
+        if name not in self.prompt_groups:
+            raise ValueError(
+                f"Prompt group '{name}' not found.\n"
+                f"  Available: {list(self.prompt_groups.keys())}\n"
+                f"  Loaded from paths: {self.prompt_paths}"
+            )
+        return self.prompt_groups[name]
+
+    def get_prompt_group_names(self) -> List[str]:
+        """Return the names of all resolved prompt groups."""
+        return list(self.prompt_groups.keys())
+
+    def get_prompt_groups(self) -> Dict[str, PromptGroup]:
+        """Return all resolved prompt groups."""
+        return dict(self.prompt_groups)

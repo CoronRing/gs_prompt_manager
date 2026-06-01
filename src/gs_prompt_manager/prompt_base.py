@@ -1,10 +1,10 @@
 import regex
 import logging
 from abc import abstractmethod
+from typing import Optional
 import datetime
 
 logger = logging.getLogger(__name__)
-
 
 class PromptBase:
     """
@@ -18,17 +18,17 @@ class PromptBase:
         description: str = "",
         description_long: str = "",
         prompt: str = "",
-        prompt_pieces_available: list = None,
-        prompt_pieces_default_value: dict = None,
-        prompt_predefine_value: dict = None,
+        prompt_pieces_available: Optional[list] = None,
+        prompt_pieces_default_value: Optional[dict] = None,
+        prompt_predefine_value: Optional[dict] = None,
         name: str = "",
-        tags: list = None,
+        tags: Optional[list] = None,
         author: str = "",
         version: str = "",
         timestamp: str = "",
-        tools: list = None,
-        expected_config: dict = None,
-        example: dict = None,
+        tools: Optional[list] = None,
+        expected_config: Optional[dict] = None,
+        example: Optional[dict] = None,
         verbose: bool = False,
     ):
         self.verbose = verbose
@@ -38,17 +38,9 @@ class PromptBase:
         self.description_long = description_long
 
         self.prompt = prompt
-        self.prompt_pieces_available = (
-            prompt_pieces_available if prompt_pieces_available is not None else []
-        )
-        self.prompt_pieces_default_value = (
-            prompt_pieces_default_value
-            if prompt_pieces_default_value is not None
-            else {}
-        )
-        self.prompt_predefine_value = (
-            prompt_predefine_value if prompt_predefine_value is not None else {}
-        )
+        self.prompt_pieces_available = prompt_pieces_available if prompt_pieces_available is not None else []
+        self.prompt_pieces_default_value = prompt_pieces_default_value if prompt_pieces_default_value is not None else {}
+        self.prompt_predefine_value = prompt_predefine_value if prompt_predefine_value is not None else {}
 
         self.name = name
         self.tags = tags if tags is not None else []
@@ -57,19 +49,10 @@ class PromptBase:
         self.timestamp = timestamp
         self.tools = tools if tools is not None else []
         self.expected_config = expected_config if expected_config is not None else {}
-        self.example = (
-            example
-            if example is not None
-            else {"sample_piece": "", "sample_response": ""}
-        )
-
-        self.associated_prompt = {}
-        self.associated_prompt_names = []
+        self.example = example if example is not None else {"sample_piece": "", "sample_response": ""}
 
         # Delegate to subclass "set_*" logic if not given in init
         self.set_tools()
-        self.set_associated_prompt()
-        self.associated_prompt_names = list(self.associated_prompt.keys())
 
         if not self.prompt:
             set_val = self.set_prompt()
@@ -188,13 +171,6 @@ class PromptBase:
         """
         self.tools = []
 
-    @abstractmethod
-    def set_associated_prompt(self):
-        """
-        Subclass sets .associated_prompt (other PromptBase instances by key).
-        """
-        self.associated_prompt = {}
-
     ###### Validation logic #######
 
     def _check_default_prompt_pieces(self):
@@ -234,7 +210,6 @@ class PromptBase:
             ("example", dict),
             ("tags", list),
             ("tools", list),
-            ("associated_prompt", dict),
         ]:
             if not isinstance(getattr(self, attr), expected):
                 raise ValueError(
@@ -255,16 +230,15 @@ class PromptBase:
             "tools": self.tools,
             "expected_config": self.expected_config,
             "example": self.example,
-            "associated_prompt_names": list(self.associated_prompt.keys()),
         }
 
     def _get_prompt(
-        self, base: str, prompt_pieces: dict = None, no_warning: bool = False
+        self, base: str, prompt_pieces: dict = {}, no_warning: bool = False
     ) -> str:
         """
         Fill the prompt string's placeholders with provided (or default) prompt_pieces and predef macros.
         """
-        prompt_pieces = prompt_pieces or {}
+        prompt_pieces = prompt_pieces
 
         # Validate prompt input keys
         for key in prompt_pieces:
@@ -308,7 +282,7 @@ class PromptBase:
                     )
         return result
 
-    def get_prompt(self, prompt_pieces: dict = None, no_warning: bool = False) -> str:
+    def get_prompt(self, prompt_pieces: dict = {}, no_warning: bool = False) -> str:
         """
         Get the filled prompt string with provided (or default) prompt_pieces and predef macros.
         """
@@ -333,12 +307,13 @@ class PromptBase:
 
         return result
 
-    def __call__(self, prompt_pieces: dict = None, no_warning: bool = False) -> str:
+    def __call__(self, prompt_pieces: dict = {}, no_warning: bool = False) -> str:
         """
         Allow prompt instances to be called like a function to render the prompt.
         Example: prompt = manager.get_prompt('X'); result = prompt({'var':'value'})
         """
         return self.get_prompt(prompt_pieces, no_warning=no_warning)
+    
     @staticmethod
     def _escape_braces(line: str) -> str:
         """

@@ -2,6 +2,24 @@
 
 All notable changes to gs_prompt_manager will be documented in this file. Only keep code changes here.
 
+## [0.0.6]
+
+### Added
+
+- `PromptGroup` system: bundle related variants (system / chat / pre / post / message / prompt) under a single named group, queryable via `manager.get_prompt_group(name)` with attribute, dict, and callable access (`group.system(...)`, `group["chat"]`)
+- `@prompt_group` decorator for explicit group assignment with optional explicit key
+- Auto-detection of group membership from class-name suffix (case-insensitive, with or without underscore)
+- `PromptManager.get_prompt_group`, `get_prompt_group_names`, `get_prompt_groups`
+
+### Changed
+
+- Removed the `related_prompt` system from `PromptBase` and `PromptManager` (superseded by `PromptGroup`)
+- `get_metadata()` no longer returns `related_prompt_names`
+
+### Fixed
+
+- Fixed mutable default argument bug in `PromptBase.__init__` that caused state to leak across instances when subclasses mutated default piece dicts in place
+
 ## [0.0.5]
 
 ### Fixed

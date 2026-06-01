@@ -2,14 +2,14 @@
 
 ## User Documentation
 
-- **[User Guide](user-guide.md)** - Complete guide covering installation, concepts, and usage
-- **[Examples](examples.md)** - Real-world integration examples with OpenAI, Claude, and multi-agent systems
+- **[User Guide](user-guide.md)** — installation, core concepts (PromptBase, PromptManager, PromptGroup), and configuration patterns.
+- **[Examples](examples.md)** — real-world integrations with OpenAI, Claude, multi-agent systems, and advanced patterns.
 
 ## Developer Documentation
 
-- **[Contributing](../CONTRIBUTING.md)** - How to contribute to the project
-- **[Publishing](../PUBLISHING.md)** - Release process for maintainers
-- **[Changelog](../CHANGELOG.md)** - Version history
+- **[Contributing](../CONTRIBUTING.md)** — how to contribute to the project
+- **[Publishing](../PUBLISHING.md)** — release process for maintainers
+- **[Changelog](../CHANGELOG.md)** — version history
 
 ## Quick Start
 
@@ -31,4 +31,23 @@ prompt = MyPrompt()
 print(prompt({"name": "World"}))
 ```
 
-See the **[User Guide](user-guide.md)** for complete documentation.
+Bundle related variants — system / chat / pre / post / message — into a single `PromptGroup`:
+
+```python
+from gs_prompt_manager import PromptBase, PromptManager
+
+class GreeterSystem(PromptBase):
+    def set_prompt(self):
+        return "You are a friendly greeter."
+
+class GreeterChat(PromptBase):
+    def set_prompt(self):
+        return "Greet {name} in one sentence."
+
+manager = PromptManager(prompt_paths="./prompts")
+greeter = manager.get_prompt_group("Greeter")
+print(greeter.system())
+print(greeter.chat({"name": "Alice"}))
+```
+
+See the **[User Guide](user-guide.md)** for the complete API and the prompt-group resolution rules.

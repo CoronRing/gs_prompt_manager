@@ -134,3 +134,7 @@ dmypy.json
 # Defined
 ticket_*
 *.txt
+
+# Credentials / secrets — never commit these
+.pypirc
+*.pypirc

@@ -8,6 +8,7 @@ Welcome to the gs_prompt_manager user guide! This guide will walk you through ev
 - [Core Concepts](#core-concepts)
 - [Creating Prompts](#creating-prompts)
 - [Managing Prompts](#managing-prompts)
+- [Prompt Groups](#prompt-groups)
 - [Variable Substitution](#variable-substitution)
 - [Best Practices](#best-practices)
 - [Troubleshooting](#troubleshooting)
@@ -49,6 +50,10 @@ print(gs_prompt_manager.__version__)
 ### PromptManager
 
 `PromptManager` automatically discovers and loads prompt classes from directories, making them easy to access and use.
+
+### PromptGroup
+
+A `PromptGroup` is a named bundle of related `PromptBase` instances (for example, a system / chat / pre / post variant set), accessed by key. Groups are built automatically by `PromptManager` when prompts are loaded.
 
 ### Prompt Pieces
 
@@ -298,6 +303,118 @@ welcome = manager.get_prompt("WelcomePrompt")
 print(welcome({"name": "Alice"}))
 ```
 
+## Prompt Groups
+
+Related prompt variants — system / chat / pre / post / message — often go together. A `PromptGroup` bundles them under one name so callers can pick the variant they need: `group.system(...)`, `group.chat(...)`, etc.
+
+When you load prompts via `PromptManager`, groups are built automatically using one of three rules. The first matching rule wins, in this order:
+
+1. **`@prompt_group` decorator** — explicit group name (and optional explicit key).
+2. **Class-name suffix** — recognized suffix maps the prompt into a group automatically.
+3. **Solo** — a prompt that matches neither becomes its own one-member group with key `"default"`.
+
+### Auto-Grouping by Suffix
+
+These suffixes (case-insensitive, with or without a leading underscore) trigger auto-grouping:
+
+| Suffix       | Key in group |
+|--------------|--------------|
+| `System`     | `system`     |
+| `Chat`       | `chat`       |
+| `Pre`        | `pre`        |
+| `Post`       | `post`       |
+| `Message`    | `message`    |
+| `Prompt`     | `prompt`     |
+
+Example:
+
+```python
+from gs_prompt_manager import PromptBase
+
+class AssistantSystem(PromptBase):
+    def set_prompt(self):
+        return "You are a helpful assistant in {domain}."
+
+class AssistantChat(PromptBase):
+    def set_prompt(self):
+        return "{user_message}"
+```
+
+After loading via `PromptManager`, both end up in the group `Assistant`:
+
+```python
+asst = manager.get_prompt_group("Assistant")
+system_text = asst.system({"domain": "biology"})
+user_text   = asst.chat({"user_message": "Explain mitosis."})
+```
+
+If a class name *is* the suffix (e.g. `Chat` on its own), it does not strip to an empty group — it becomes a solo group instead.
+
+### Explicit Grouping with `@prompt_group`
+
+When the class name doesn't follow the suffix convention, decorate it:
+
+```python
+from gs_prompt_manager import PromptBase, prompt_group
+
+@prompt_group("Assistant")
+class FormalAssistantGreeting(PromptBase):
+    def set_prompt(self):
+        return "Good day. How may I help?"
+
+@prompt_group("Assistant", "casual")
+class HiThere(PromptBase):
+    def set_prompt(self):
+        return "Hey! What's up?"
+```
+
+Key derivation (when no explicit key is given): the group-name prefix is stripped from the class name (case-insensitive), underscores are removed, and the rest is lowercased. If nothing remains, the key falls back to `"default"`.
+
+| Class name             | Decorator                      | Resulting key |
+|------------------------|--------------------------------|---------------|
+| `ABC_special`          | `@prompt_group("ABC")`         | `special`     |
+| `ABCFancy`             | `@prompt_group("ABC")`         | `fancy`       |
+| `ABC`                  | `@prompt_group("ABC")`         | `default`     |
+| `ABCWhatever`          | `@prompt_group("ABC", "main")` | `main`        |
+
+### Solo Groups
+
+A prompt with no decorator and no recognized suffix becomes its own group:
+
+```python
+class SampleSpecial(PromptBase):  # group "SampleSpecial", key "default"
+    def set_prompt(self):
+        return "Just me."
+```
+
+This means every loaded prompt is reachable via `get_prompt_group` even if you don't use grouping deliberately.
+
+### Querying Groups
+
+```python
+manager = PromptManager(prompt_paths="./prompts")
+
+manager.get_prompt_group_names()           # list of group names
+manager.get_prompt_groups()                # dict[str, PromptGroup] (copy)
+group = manager.get_prompt_group("Assistant")
+
+group.get_prompt_names()                   # ["system", "chat", ...]
+group.system                               # PromptBase instance (attribute access)
+group["chat"]                              # PromptBase instance (dict-style)
+"system" in group                          # True / False
+len(group)                                 # member count
+
+# Render a member directly:
+group.system({"domain": "law"})
+group["chat"]({"user_message": "hi"})
+```
+
+Converting a group to a string renders one of its members. Priority: `default` → `chat` → first available.
+
+### Collisions
+
+If two prompts would land on the same `(group, key)` pair, the first one wins and the second emits a warning. To resolve, give one of them an explicit key with `@prompt_group(group_name, "unique_key")`.
+
 ## Variable Substitution
 
 ### Prompt Pieces (User Variables)
@@ -517,6 +634,21 @@ if not os.path.exists(path):
     os.makedirs(path)
 
 manager = PromptManager(prompt_paths=path)
+```
+
+### Prompt Group Not Found
+
+**Error:** `ValueError: Prompt group 'X' not found`
+
+**Solutions:**
+
+1. Check the suffix on your class names — recognized suffixes are listed in the [Prompt Groups](#prompt-groups) section. `ExampleChat` becomes group `Example`, not `ExampleChat`.
+2. If you used `@prompt_group("Foo")`, the group name is `Foo`, not the class name.
+3. Inspect what was loaded:
+
+```python
+print(manager.get_prompt_group_names())
+print({n: g.get_prompt_names() for n, g in manager.get_prompt_groups().items()})
 ```
 
 ### Duplicate Prompt Names

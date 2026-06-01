@@ -26,10 +26,6 @@ class SimplePrompt(PromptBase):
     def set_tools(self):
         self.tools = []
 
-    def set_associated_prompt(self):
-        self.associated_prompt = {}
-
-
 class PromptWithMacros(PromptBase):
     """A prompt with predefined macros."""
 
@@ -49,10 +45,6 @@ class PromptWithMacros(PromptBase):
 
     def set_tools(self):
         self.tools = []
-
-    def set_associated_prompt(self):
-        self.associated_prompt = {}
-
 
 class TestPromptBase:
     """Test suite for PromptBase class."""
@@ -189,9 +181,6 @@ class TestPromptBase:
             def set_tools(self):
                 pass
 
-            def set_associated_prompt(self):
-                pass
-
         prompt = VerbosePrompt()
         # Should work without errors
         assert prompt.verbose is True
@@ -228,9 +217,6 @@ class TestPromptBasePieceExtraction:
             def set_tools(self):
                 pass
 
-            def set_associated_prompt(self):
-                pass
-
         prompt = AutoExtractPrompt()
         assert "name" in prompt.prompt_pieces_available
         assert "age" in prompt.prompt_pieces_available
@@ -252,9 +238,6 @@ class TestPromptBasePieceExtraction:
                 self.name = "AutoExtractSystemPrompt"
 
             def set_tools(self):
-                pass
-
-            def set_associated_prompt(self):
                 pass
 
         prompt = AutoExtractSystemPrompt()
@@ -286,9 +269,6 @@ class TestPromptBaseValidation:
             def set_tools(self):
                 pass
 
-            def set_associated_prompt(self):
-                pass
-
         with pytest.raises(ValueError, match="not in prompt_pieces_available"):
             InvalidDefaultPrompt()
 
@@ -312,9 +292,6 @@ class TestPromptBaseValidation:
             def set_tools(self):
                 # This should be a list, not a dict
                 self.tools = {"invalid": "type"}
-
-            def set_associated_prompt(self):
-                pass
 
         prompt = InvalidMetadataPrompt()
         with pytest.raises(ValueError, match="tools must be of type list"):

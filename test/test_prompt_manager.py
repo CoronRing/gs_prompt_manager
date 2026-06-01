@@ -25,9 +25,6 @@ class SamplePrompt1(PromptBase):
     def set_tools(self):
         pass
 
-    def set_associated_prompt(self):
-        pass
-
 
 class SamplePrompt2(PromptBase):
     """Another sample prompt for testing."""
@@ -46,9 +43,6 @@ class SamplePrompt2(PromptBase):
 
     def set_tools(self):
         self.tools = ["tool1", "tool2"]
-
-    def set_associated_prompt(self):
-        pass
 
 
 @pytest.fixture
@@ -79,7 +73,7 @@ class TempPrompt(PromptBase):
     def set_tools(self):
         pass
     
-    def set_associated_prompt(self):
+    def set_related_prompt(self):
         pass
 """)
 
@@ -117,7 +111,7 @@ class MultiPrompt{i}(PromptBase):
     def set_tools(self):
         pass
     
-    def set_associated_prompt(self):
+    def set_related_prompt(self):
         pass
 """)
 
@@ -277,7 +271,7 @@ class DuplicatePrompt(PromptBase):
     def set_tools(self):
         pass
     
-    def set_associated_prompt(self):
+    def set_related_prompt(self):
         pass
 """)
 
@@ -319,7 +313,7 @@ class NestedPrompt(PromptBase):
     def set_tools(self):
         pass
     
-    def set_associated_prompt(self):
+    def set_related_prompt(self):
         pass
 """)
 
