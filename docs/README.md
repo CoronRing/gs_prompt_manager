@@ -2,14 +2,15 @@
 
 ## User Documentation
 
-- **[User Guide](user-guide.md)** - Complete guide covering installation, concepts, and usage
-- **[Examples](examples.md)** - Real-world integration examples with OpenAI, Claude, and multi-agent systems
+- **[User Guide](user-guide.md)** — installation, core concepts (PromptBase, PromptManager, PromptGroup), and configuration patterns.
+- **[Examples](examples.md)** — real-world integrations with OpenAI, Claude, multi-agent systems, and advanced patterns.
 
 ## Developer Documentation
 
-- **[Contributing](../CONTRIBUTING.md)** - How to contribute to the project
-- **[Publishing](../PUBLISHING.md)** - Release process for maintainers
-- **[Changelog](../CHANGELOG.md)** - Version history
+- **[Migration Guide](migration.md)** — upgrading from an earlier version
+- **[Contributing](../CONTRIBUTING.md)** — how to contribute to the project
+- **[Publishing](../PUBLISHING.md)** — release process for maintainers
+- **[Changelog](../CHANGELOG.md)** — version history
 
 ## Quick Start
 
@@ -21,14 +22,33 @@ pip install gs-prompt-manager
 from gs_prompt_manager import PromptBase
 
 class MyPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Hello, {name}!"
 
     def set_name(self):
         self.name = "MyPrompt"
 
 prompt = MyPrompt()
-print(prompt.get_prompt_chat({"name": "World"}))
+print(prompt({"name": "World"}))
 ```
 
-See the **[User Guide](user-guide.md)** for complete documentation.
+Bundle related variants — system / chat / pre / post / message — into a single `PromptGroup`:
+
+```python
+from gs_prompt_manager import PromptBase, PromptManager
+
+class GreeterSystem(PromptBase):
+    def set_prompt(self):
+        return "You are a friendly greeter."
+
+class GreeterChat(PromptBase):
+    def set_prompt(self):
+        return "Greet {name} in one sentence."
+
+manager = PromptManager(prompt_paths="./prompts")
+greeter = manager.get_prompt_group("Greeter")
+print(greeter.system())
+print(greeter.chat({"name": "Alice"}))
+```
+
+See the **[User Guide](user-guide.md)** for the complete API and the prompt-group resolution rules.

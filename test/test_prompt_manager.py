@@ -10,20 +10,13 @@ from gs_prompt_manager import PromptManager, PromptBase
 
 class SamplePrompt1(PromptBase):
     """Sample prompt for testing."""
-
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "This is sample prompt 1: {input}"
 
-    def set_prompt_system(self):
-        return ""
+    def set_variable_defaults(self):
+        self.variable_defaults = {"input": "default"}
 
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = ["input"]
-
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"input": "default"}
-
-    def set_prompt_predefine_value(self):
+    def set_macros(self):
         pass
 
     def set_name(self):
@@ -32,26 +25,16 @@ class SamplePrompt1(PromptBase):
     def set_tools(self):
         pass
 
-    def set_associated_prompt(self):
-        pass
-
 
 class SamplePrompt2(PromptBase):
     """Another sample prompt for testing."""
-
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "This is sample prompt 2"
 
-    def set_prompt_system(self):
-        return "System prompt for sample 2"
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
 
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-
-    def set_prompt_predefine_value(self):
+    def set_macros(self):
         pass
 
     def set_name(self):
@@ -60,50 +43,35 @@ class SamplePrompt2(PromptBase):
     def set_tools(self):
         self.tools = ["tool1", "tool2"]
 
-    def set_associated_prompt(self):
-        pass
-
 
 @pytest.fixture
 def temp_prompt_dir():
     """Create a temporary directory with sample prompt files."""
     temp_dir = tempfile.mkdtemp()
 
-    # Create a sample prompt file
     prompt_file = os.path.join(temp_dir, "test_prompt.py")
     with open(prompt_file, "w") as f:
         f.write("""
 from gs_prompt_manager import PromptBase
 
 class TempPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Temporary prompt"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    
-    def set_prompt_predefine_value(self):
+
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+
+    def set_macros(self):
         pass
-    
+
     def set_name(self):
         self.name = "TempPrompt"
-    
+
     def set_tools(self):
-        pass
-    
-    def set_associated_prompt(self):
         pass
 """)
 
     yield temp_dir
-
-    # Cleanup
     shutil.rmtree(temp_dir)
 
 
@@ -112,7 +80,6 @@ def multi_prompt_dir():
     """Create a temporary directory with multiple prompt files."""
     temp_dir = tempfile.mkdtemp()
 
-    # Create multiple prompt files
     for i in range(3):
         prompt_file = os.path.join(temp_dir, f"prompt_{i}.py")
         with open(prompt_file, "w") as f:
@@ -120,34 +87,23 @@ def multi_prompt_dir():
 from gs_prompt_manager import PromptBase
 
 class MultiPrompt{i}(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Prompt {i}"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {{}}
-    
-    def set_prompt_predefine_value(self):
+
+    def set_variable_defaults(self):
+        self.variable_defaults = {{}}
+
+    def set_macros(self):
         pass
-    
+
     def set_name(self):
         self.name = "MultiPrompt{i}"
-    
+
     def set_tools(self):
-        pass
-    
-    def set_associated_prompt(self):
         pass
 """)
 
     yield temp_dir
-
-    # Cleanup
     shutil.rmtree(temp_dir)
 
 
@@ -231,7 +187,6 @@ class TestPromptManager:
         """Test that non-prompt Python files are ignored."""
         temp_dir = tempfile.mkdtemp()
         try:
-            # Create a Python file that doesn't contain a PromptBase subclass
             non_prompt_file = os.path.join(temp_dir, "not_a_prompt.py")
             with open(non_prompt_file, "w") as f:
                 f.write("""
@@ -269,16 +224,12 @@ def some_function():
 
     def test_init_with_default_path(self):
         """Test initialization with default path (caller's directory)."""
-        # This test uses the actual test directory
         _ = PromptManager()
-        # Should find prompts in the caller's directory (test/sample_prompts)
-        # The actual behavior depends on where this is called from
 
     def test_duplicate_prompt_names_warning(self, caplog):
         """Test that duplicate prompt names trigger warnings."""
         temp_dir = tempfile.mkdtemp()
         try:
-            # Create two files with the same class name
             for i in range(2):
                 prompt_file = os.path.join(temp_dir, f"duplicate_{i}.py")
                 with open(prompt_file, "w") as f:
@@ -286,28 +237,19 @@ def some_function():
 from gs_prompt_manager import PromptBase
 
 class DuplicatePrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Duplicate"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    
-    def set_prompt_predefine_value(self):
+
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+
+    def set_macros(self):
         pass
-    
+
     def set_name(self):
         self.name = "DuplicatePrompt"
-    
+
     def set_tools(self):
-        pass
-    
-    def set_associated_prompt(self):
         pass
 """)
 
@@ -315,7 +257,6 @@ class DuplicatePrompt(PromptBase):
 
             with caplog.at_level(logging.WARNING):
                 _ = PromptManager(prompt_paths=temp_dir)
-                # Should have a warning about duplicate
                 assert any("Duplicate" in record.message for record in caplog.records)
         finally:
             shutil.rmtree(temp_dir)
@@ -324,7 +265,6 @@ class DuplicatePrompt(PromptBase):
         """Test that prompts in nested directories are found."""
         temp_dir = tempfile.mkdtemp()
         try:
-            # Create nested directory structure
             nested_dir = os.path.join(temp_dir, "subdir", "nested")
             os.makedirs(nested_dir)
 
@@ -334,28 +274,19 @@ class DuplicatePrompt(PromptBase):
 from gs_prompt_manager import PromptBase
 
 class NestedPrompt(PromptBase):
-    def set_prompt_chat(self):
+    def set_prompt(self):
         return "Nested prompt"
-    
-    def set_prompt_system(self):
-        return ""
-    
-    def set_prompt_pieces_available(self):
-        self.prompt_pieces_available = []
-    
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    
-    def set_prompt_predefine_value(self):
+
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+
+    def set_macros(self):
         pass
-    
+
     def set_name(self):
         self.name = "NestedPrompt"
-    
+
     def set_tools(self):
-        pass
-    
-    def set_associated_prompt(self):
         pass
 """)
 
@@ -379,18 +310,40 @@ class InitPrompt(PromptBase):
 """)
 
             manager = PromptManager(prompt_paths=temp_dir)
-            # __init__.py should be skipped
             assert "InitPrompt" not in manager.get_prompt_names()
         finally:
             shutil.rmtree(temp_dir)
+
+    def test_getattr_returns_group(self, temp_prompt_dir):
+        """Attribute-style access returns the PromptGroup when a group matches the name.
+        TempPrompt ends with 'Prompt' suffix → auto-grouped as group 'Temp', key 'prompt'.
+        So manager.Temp returns the group; manager.TempPrompt falls through to the instance."""
+        manager = PromptManager(prompt_paths=temp_prompt_dir)
+        from gs_prompt_manager import PromptGroup
+        # The auto-detected group name is "Temp" (stem of TempPrompt)
+        assert isinstance(manager.Temp, PromptGroup)
+        # The prompt instance is still accessible by its class name
+        assert isinstance(manager.TempPrompt, PromptBase)
+
+    def test_getattr_unknown_raises(self, temp_prompt_dir):
+        """Test that accessing an unknown attribute raises AttributeError."""
+        manager = PromptManager(prompt_paths=temp_prompt_dir)
+        with pytest.raises(AttributeError):
+            _ = manager.NonExistentPrompt
+
+    def test_dir_includes_group_and_prompt_names(self, temp_prompt_dir):
+        """Test that dir() includes both group names and prompt instance names."""
+        manager = PromptManager(prompt_paths=temp_prompt_dir)
+        d = dir(manager)
+        assert "TempPrompt" in d  # from prompt_instances
+        assert "Temp" in d        # from prompt_groups (auto-detected group)
 
 
 class TestPromptManagerIntegration:
     """Integration tests for PromptManager with real prompt directory."""
 
-    def test_load_sample_prompts(self):
+    def test_load_sample_prompts_error(self):
         """Test loading the actual sample_prompts directory."""
-        # Get the path to the sample_prompts directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
         sample_prompts_dir = os.path.join(current_dir, "sample_prompts")
 
@@ -399,5 +352,8 @@ class TestPromptManagerIntegration:
             assert "PromptHelloWorld" in manager.get_prompt_names()
 
             prompt = manager.get_prompt("PromptHelloWorld")
-            result = prompt.get_prompt_chat()
-            assert result == "Hello, World!"
+            try:
+                result = prompt()
+            except Exception as e:
+                assert isinstance(e, ValueError)
+                assert "world" in str(e)

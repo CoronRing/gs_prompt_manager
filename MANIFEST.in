@@ -14,6 +14,8 @@ recursive-include docs *.md
 
 # Include test files (for users who want to run tests)
 recursive-include test *.py
+# Exclude personal/manual scratch tests from the published sdist
+recursive-exclude test/manual *
 
 # Include GitHub templates
 recursive-include .github *.md *.yml *.yaml

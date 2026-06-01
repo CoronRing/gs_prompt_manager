@@ -3,9 +3,15 @@ import importlib.util
 import inspect
 from typing import Dict, List, Type, Optional, Union
 from gs_prompt_manager.prompt_base import PromptBase
+from gs_prompt_manager.prompt_group import (
+    PromptGroup,
+    _GROUP_NAME_ATTR,
+    _GROUP_KEY_ATTR,
+    derive_decorator_key,
+    resolve_auto_group,
+)
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -23,7 +29,7 @@ class PromptManager:
         Initialize the PromptManager, searching for subclasses of PromptBase in the provided path(s).
 
         Args:
-            prompt_path: str or List[str], optional
+            prompt_paths: str or List[str], optional
                 Path(s) to the directory/directories containing prompt implementations.
                 If None, uses the directory containing the instantiation file.
             verbose: bool
@@ -31,12 +37,12 @@ class PromptManager:
         """
         self.verbose = verbose
         self.prompt_paths: List[str] = []
-        self.prompt_objects: Dict[str, Type[PromptBase]] = {}
+        self.prompt_classes: Dict[str, Type[PromptBase]] = {}
         self.prompt_instances: Dict[str, PromptBase] = {}
+        self.prompt_groups: Dict[str, PromptGroup] = {}
 
         try:
             if prompt_paths is None:
-                # stack()[1] is the immediate caller
                 caller_frame = inspect.stack()[1]
                 caller_filename = caller_frame.filename
                 self.prompt_paths = [os.path.dirname(os.path.abspath(caller_filename))]
@@ -50,12 +56,11 @@ class PromptManager:
             for path in self.prompt_paths:
                 if not os.path.isdir(path):
                     raise ValueError(f"Provided path is not a directory: {path}")
-                self.prompt_objects.update(
+                self.prompt_classes.update(
                     self.search_available_prompts(path, black_list=[])
                 )
 
-            # Instantiate each prompt class
-            for prompt_name, prompt_class in self.prompt_objects.items():
+            for prompt_name, prompt_class in self.prompt_classes.items():
                 if prompt_name in self.prompt_instances:
                     raise ValueError(f"Duplicate prompt name found: {prompt_name}")
                 try:
@@ -66,9 +71,14 @@ class PromptManager:
                         exc_info=True,
                     )
 
+            self._resolve_groups()
+
             if self.verbose:
                 logger.info(
                     f"PromptManager: Loaded {len(self.prompt_instances)} prompt classes: {list(self.prompt_instances.keys())}"
+                )
+                logger.info(
+                    f"PromptManager: Resolved {len(self.prompt_groups)} prompt groups: {list(self.prompt_groups.keys())}"
                 )
 
         except Exception as e:
@@ -119,7 +129,6 @@ class PromptManager:
                         )
                         continue
 
-                    # Inspect module members, filter classes
                     for name, candidate in inspect.getmembers(module, inspect.isclass):
                         if candidate.__module__ != module.__name__:
                             continue
@@ -129,7 +138,6 @@ class PromptManager:
                         ):
                             if candidate in black_list:
                                 continue
-                            # if duplicate, throw a warning
                             if candidate.__name__ in found:
                                 logger.warning(
                                     f"Duplicate prompt class '{candidate.__name__}' found in {file_path}. Skipping."
@@ -177,44 +185,116 @@ class PromptManager:
         return metadata_dict
 
     def get_prompt_instances(self) -> Dict[str, PromptBase]:
-        """
-        Returns all instantiated prompt objects.
-
-        Returns:
-            Dict[str, PromptBase]: Mapping from class name to instance.
-        """
+        """Returns all instantiated prompt objects."""
         return self.prompt_instances
 
-    def get_prompt(
-        self, name: str, no_warning: bool = False
-    ) -> PromptBase:
+    def get_prompt(self, name: str) -> PromptBase:
         """
         Get an instantiated prompt by its class name.
-
-        Args:
-            name: str
-                Name of the prompt class.
-
-        Returns:
-            PromptBase: The instance of the specified prompt.
 
         Raises:
             ValueError: If the prompt is not found.
         """
         if name not in self.prompt_instances:
-            raise ValueError((
-                f"Prompt '{name}' not found.\n" 
+            raise ValueError(
+                f"Prompt '{name}' not found.\n"
                 f"  Available: {list(self.prompt_instances.keys())}\n"
                 f"  Loaded from paths: {self.prompt_paths}\n"
-                )
             )
         return self.prompt_instances[name]
 
     def get_prompt_names(self) -> List[str]:
-        """
-        Get the names of all available prompt classes.
-
-        Returns:
-            List[str]: List of prompt names.
-        """
+        """Get the names of all available prompt classes."""
         return list(self.prompt_instances.keys())
+
+    ###### Prompt group API #######
+
+    def _resolve_groups(self) -> None:
+        """
+        Build self.prompt_groups from self.prompt_instances. Resolution priority:
+            1. @prompt_group decorator on the class
+            2. Recognized suffix in class name (chat/system/pre/post/message/prompt)
+            3. Solo group named after the class with key "default"
+
+        Key collisions within a group are logged and the conflicting prompt is
+        skipped (only the first one assigned to a given key is kept).
+        """
+        self.prompt_groups = {}
+
+        for class_name, instance in self.prompt_instances.items():
+            cls = type(instance)
+
+            group_name = getattr(cls, _GROUP_NAME_ATTR, None)
+            if group_name:
+                explicit_key = getattr(cls, _GROUP_KEY_ATTR, None)
+                key = derive_decorator_key(class_name, group_name, explicit_key)
+            else:
+                auto = resolve_auto_group(class_name)
+                if auto is not None:
+                    group_name, key = auto
+                else:
+                    group_name, key = class_name, "default"
+
+            group = self.prompt_groups.setdefault(group_name, PromptGroup(group_name))
+            if key in group:
+                logger.warning(
+                    f"PromptGroup '{group_name}' already has key '{key}' "
+                    f"(held by {type(group.get_prompt(key)).__name__}); "
+                    f"skipping '{class_name}'."
+                )
+                continue
+            group.add(key, instance)
+
+    def get_prompt_group(self, name: str) -> PromptGroup:
+        """
+        Get a prompt group by name.
+
+        Raises:
+            ValueError: If the group is not found.
+        """
+        if name not in self.prompt_groups:
+            raise ValueError(
+                f"Prompt group '{name}' not found.\n"
+                f"  Available: {list(self.prompt_groups.keys())}\n"
+                f"  Loaded from paths: {self.prompt_paths}"
+            )
+        return self.prompt_groups[name]
+
+    def get_prompt_group_names(self) -> List[str]:
+        """Return the names of all resolved prompt groups."""
+        return list(self.prompt_groups.keys())
+
+    def get_prompt_groups(self) -> Dict[str, PromptGroup]:
+        """Return all resolved prompt groups (defensive copy)."""
+        return dict(self.prompt_groups)
+
+    ###### Attribute-style access #######
+
+    def __getattr__(self, name: str):
+        """
+        Attribute-style access for groups and prompts. Groups take priority.
+        Only called when normal attribute lookup fails, so existing methods are safe.
+
+        Examples:
+            manager.MyGroup          # → PromptGroup
+            manager.MyPromptChat     # → PromptBase instance
+        """
+        if name.startswith("_"):
+            raise AttributeError(name)
+        groups = self.__dict__.get("prompt_groups", {})
+        if groups and name in groups:
+            return groups[name]
+        instances = self.__dict__.get("prompt_instances", {})
+        if instances and name in instances:
+            return instances[name]
+        raise AttributeError(
+            f"PromptManager has no attribute '{name}'. "
+            f"Available groups: {list(groups.keys())}. "
+            f"Available prompts: {list(instances.keys())}."
+        )
+
+    def __dir__(self):
+        base = list(super().__dir__())
+        groups = list(self.__dict__.get("prompt_groups", {}).keys())
+        instances = list(self.__dict__.get("prompt_instances", {}).keys())
+        return base + groups + instances
