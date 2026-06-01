@@ -29,8 +29,8 @@ class CodeReviewPrompt(PromptBase):
     def set_prompt(self):
         return "Review this {language} code:\n\n```{language}\n{code}\n```"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {
+    def set_variable_defaults(self):
+        self.variable_defaults = {
             "language": "python",
             "code": ""
         }
@@ -56,8 +56,8 @@ class AssistantSystem(PromptBase):
     def set_prompt(self):
         return "You are a helpful assistant specialized in {domain}."
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"domain": "general knowledge"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"domain": "general knowledge"}
 
     def set_name(self):
         self.name = "AssistantSystem"
@@ -67,15 +67,20 @@ class AssistantChat(PromptBase):
     def set_prompt(self):
         return "{user_input}"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"user_input": ""}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"user_input": ""}
 
     def set_name(self):
         self.name = "AssistantChat"
 
 
 manager = PromptManager(prompt_paths="./prompts")
+
+# Explicit lookup
 asst = manager.get_prompt_group("Assistant")
+
+# Attribute shorthand (equivalent)
+# asst = manager.Assistant
 
 client = openai.OpenAI(api_key="your-api-key")
 response = client.chat.completions.create(
@@ -115,7 +120,7 @@ analysis = manager.get_prompt_group("Analysis")
 
 client = anthropic.Anthropic(api_key="your-api-key")
 message = client.messages.create(
-    model="claude-3-opus-20240229",
+    model="claude-opus-4-7",
     max_tokens=1024,
     system=analysis.system(),
     messages=[{"role": "user", "content": analysis.chat({"content": "Market data..."})}],
@@ -190,13 +195,17 @@ class HiThere(PromptBase):
 
 manager = PromptManager(prompt_paths="./prompts")
 greeting = manager.get_prompt_group("Greeting")
+
+# or using attribute access:
+# greeting = manager.Greeting
+
 print(greeting.formal())
 print(greeting.casual())
 ```
 
 ## Multi-Agent System
 
-Each agent has its own group of system + chat prompts. Loading is one line; per-agent dispatch is straightforward:
+Each agent has its own group of system + chat prompts. Attribute-style access keeps dispatch concise:
 
 ```python
 from gs_prompt_manager import PromptBase, PromptManager
@@ -227,12 +236,12 @@ class WriterChat(PromptBase):
         self.name = "WriterChat"
 
 
-def run_agent(client, group, user_pieces, model="gpt-4"):
+def run_agent(client, group, user_variables, model="gpt-4"):
     return client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": group.system()},
-            {"role": "user",   "content": group.chat(user_pieces)},
+            {"role": "user",   "content": group.chat(user_variables)},
         ],
     ).choices[0].message.content
 
@@ -241,11 +250,9 @@ def create_documentation(topic):
     client = openai.OpenAI(api_key="your-api-key")
     manager = PromptManager(prompt_paths="./prompts")
 
-    researcher = manager.get_prompt_group("Researcher")
-    writer = manager.get_prompt_group("Writer")
-
-    research = run_agent(client, researcher, {"topic": topic})
-    return run_agent(client, writer, {"research": research})
+    # Attribute access — no get_prompt_group() call needed
+    research = run_agent(client, manager.Researcher, {"topic": topic})
+    return run_agent(client, manager.Writer, {"research": research})
 
 
 docs = create_documentation("Python async/await")
@@ -255,7 +262,7 @@ docs = create_documentation("Python async/await")
 
 ### Auto-Extracted Variables
 
-If you don't explicitly declare `prompt_pieces_available`, the base class extracts them from the template by scanning for `{var}` patterns. Combine with `set_prompt_pieces_default_value_empty()` to give them safe default empty values:
+If you don't explicitly declare variables, the base class extracts them from the template by scanning for `{var}` patterns. Pair with `set_variable_defaults_empty()` to give every extracted variable an empty default:
 
 ```python
 from gs_prompt_manager import PromptBase
@@ -264,8 +271,8 @@ class SmartPrompt(PromptBase):
     def set_prompt(self):
         return "Process {input} and save to {output} in {format}"
 
-    def set_prompt_pieces_default_value(self):
-        self.set_prompt_pieces_default_value_empty()
+    def set_variable_defaults(self):
+        self.set_variable_defaults_empty()
 
     def set_name(self):
         self.name = "SmartPrompt"
@@ -279,9 +286,9 @@ result = prompt({
 })
 ```
 
-### Predefined Macros
+### Macros
 
-`<<MACRO>>`-style placeholders are owned by the prompt class itself rather than passed in by callers — useful for timestamps, environment, run IDs, etc.
+`<<MACRO>>`-style placeholders are owned by the prompt class rather than passed in by callers — useful for timestamps, environment, run IDs, etc.
 
 ```python
 from gs_prompt_manager import PromptBase
@@ -291,13 +298,13 @@ class LogPrompt(PromptBase):
     def set_prompt(self):
         return "[<<TIMESTAMP>>] {level}: {message}"
 
-    def set_prompt_predefine_value(self):
-        self.prompt_predefine_value = {
+    def set_macros(self):
+        self.macros = {
             "<<TIMESTAMP>>": datetime.datetime.now().isoformat()
         }
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"level": "INFO", "message": ""}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"level": "INFO", "message": ""}
 
     def set_name(self):
         self.name = "LogPrompt"
@@ -307,7 +314,7 @@ log = LogPrompt()
 print(log({"level": "ERROR", "message": "Failed"}))
 ```
 
-Macros can also be added at runtime via `prompt.add_prompt_predefine_value("<<RUN_ID>>", "abc123")`.
+Macros can also be added at runtime via `prompt.add_macro("<<RUN_ID>>", "abc123")`.
 
 ### Error Handling
 
@@ -336,8 +343,8 @@ class GreetingPrompt(PromptBase):
     def set_prompt(self):
         return "Hello, {name}!"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"name": "World"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"name": "World"}
 
     def set_name(self):
         self.name = "GreetingPrompt"

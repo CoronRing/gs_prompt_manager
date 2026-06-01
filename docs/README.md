@@ -7,6 +7,7 @@
 
 ## Developer Documentation
 
+- **[Migration Guide](migration.md)** — upgrading from an earlier version
 - **[Contributing](../CONTRIBUTING.md)** — how to contribute to the project
 - **[Publishing](../PUBLISHING.md)** — release process for maintainers
 - **[Changelog](../CHANGELOG.md)** — version history

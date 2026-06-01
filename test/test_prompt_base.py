@@ -12,11 +12,11 @@ class SimplePrompt(PromptBase):
     def set_prompt(self):
         return "Simple prompt: {input_text}"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"input_text": "default text"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"input_text": "default text"}
 
-    def set_prompt_predefine_value(self):
-        self.prompt_predefine_value = {
+    def set_macros(self):
+        self.macros = {
             "<<DATETIME>>": "2024-01-01 12:00:00",
         }
 
@@ -26,17 +26,18 @@ class SimplePrompt(PromptBase):
     def set_tools(self):
         self.tools = []
 
+
 class PromptWithMacros(PromptBase):
     """A prompt with predefined macros."""
 
     def set_prompt(self):
         return "Date: <<DATETIME>>, User: {user_name}"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
 
-    def set_prompt_predefine_value(self):
-        self.prompt_predefine_value = {
+    def set_macros(self):
+        self.macros = {
             "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
@@ -45,6 +46,7 @@ class PromptWithMacros(PromptBase):
 
     def set_tools(self):
         self.tools = []
+
 
 class TestPromptBase:
     """Test suite for PromptBase class."""
@@ -63,7 +65,7 @@ class TestPromptBase:
         assert isinstance(metadata, dict)
         assert metadata["name"] == "SimplePrompt"
         assert metadata["prompt"] == "Simple prompt: {input_text}"
-        assert "input_text" in metadata["default_prompt_pieces"]
+        assert "input_text" in metadata["variable_defaults"]
         assert isinstance(metadata["tags"], list)
         assert isinstance(metadata["tools"], list)
 
@@ -86,17 +88,17 @@ class TestPromptBase:
         assert "Alice" in result
         assert "<<DATETIME>>" not in result
 
-    def test_missing_required_piece(self):
-        """Test that missing required pieces raise an error."""
+    def test_missing_required_variable(self):
+        """Test that missing required variables raise an error."""
         prompt = PromptWithMacros()
-        with pytest.raises(ValueError, match="Prompt piece 'user_name' required"):
+        with pytest.raises(ValueError, match="Variable 'user_name' required"):
             prompt({})
 
-    def test_invalid_piece_warning(self, caplog):
-        """Test that invalid pieces trigger warnings."""
+    def test_invalid_variable_warning(self, caplog):
+        """Test that unknown variables trigger warnings."""
         prompt = SimplePrompt()
         prompt({"invalid_key": "value", "input_text": "test"})
-        assert "Unknown piece 'invalid_key'" in caplog.text
+        assert "Unknown variable 'invalid_key'" in caplog.text
 
     def test_default_version(self):
         """Test that version defaults to '0'."""
@@ -108,8 +110,8 @@ class TestPromptBase:
         prompt = PromptBase(
             description="Test prompt",
             prompt="Hello {name}",
-            prompt_pieces_available=["name"],
-            prompt_pieces_default_value={"name": "World"},
+            variables=["name"],
+            variable_defaults={"name": "World"},
             name="TestPrompt",
             version="1.0",
         )
@@ -122,11 +124,10 @@ class TestPromptBase:
         """Test that missing name uses class name as fallback when version is set."""
         prompt = PromptBase(
             prompt="Hello {name}",
-            prompt_pieces_available=["name"],
-            prompt_pieces_default_value={"name": "World"},
+            variables=["name"],
+            variable_defaults={"name": "World"},
             version="1.0",
         )
-        # Name should default to class name
         assert prompt.name == "PromptBase"
 
     def test_missing_prompt_raises_error(self):
@@ -135,8 +136,8 @@ class TestPromptBase:
             PromptBase(
                 name="TestPrompt",
                 version="1.0",
-                prompt_pieces_available=[],
-                prompt_pieces_default_value={},
+                variables=[],
+                variable_defaults={},
             )
 
     def test_str_method(self):
@@ -145,19 +146,19 @@ class TestPromptBase:
         result = str(prompt)
         assert "Simple prompt" in result
 
-    def test_add_prompt_predefine_value(self):
-        """Test adding predefined values dynamically."""
+    def test_add_macro(self):
+        """Test adding macros dynamically."""
         prompt = SimplePrompt()
-        prompt.add_prompt_predefine_value("<<CUSTOM>>", "custom_value")
-        assert "<<CUSTOM>>" in prompt.prompt_predefine_value
-        assert prompt.prompt_predefine_value["<<CUSTOM>>"] == "custom_value"
+        prompt.add_macro("<<CUSTOM>>", "custom_value")
+        assert "<<CUSTOM>>" in prompt.macros
+        assert prompt.macros["<<CUSTOM>>"] == "custom_value"
 
-    def test_add_prompt_piece_default_value(self):
-        """Test adding default values for prompt pieces."""
+    def test_add_variable_default(self):
+        """Test adding default values for variables."""
         prompt = SimplePrompt()
-        prompt.add_prompt_piece_default_value("new_piece", "new_default")
-        assert "new_piece" in prompt.prompt_pieces_default_value
-        assert prompt.prompt_pieces_default_value["new_piece"] == "new_default"
+        prompt.add_variable_default("new_var", "new_default")
+        assert "new_var" in prompt.variable_defaults
+        assert prompt.variable_defaults["new_var"] == "new_default"
 
     def test_verbose_mode(self):
         """Test verbose mode can be enabled without errors."""
@@ -168,11 +169,10 @@ class TestPromptBase:
             def set_prompt(self):
                 return "Test"
 
-
-            def set_prompt_pieces_default_value(self):
+            def set_variable_defaults(self):
                 pass
 
-            def set_prompt_predefine_value(self):
+            def set_macros(self):
                 pass
 
             def set_name(self):
@@ -182,7 +182,6 @@ class TestPromptBase:
                 pass
 
         prompt = VerbosePrompt()
-        # Should work without errors
         assert prompt.verbose is True
         assert prompt.name == "VerbosePrompt"
 
@@ -194,21 +193,20 @@ class TestPromptBase:
         assert isinstance(metadata["example"], dict)
 
 
-class TestPromptBasePieceExtraction:
-    """Test automatic extraction of prompt pieces from template."""
+class TestPromptBaseVariableExtraction:
+    """Test automatic extraction of prompt variables from template."""
 
-    def test_auto_extract_pieces_from_prompt(self):
-        """Test automatic extraction of pieces from prompt."""
+    def test_auto_extract_variables_from_prompt(self):
+        """Test automatic extraction of variables from prompt."""
 
         class AutoExtractPrompt(PromptBase):
             def set_prompt(self):
                 return "Hello {name}, you are {age} years old."
 
+            def set_variable_defaults(self):
+                self.set_variable_defaults_empty()
 
-            def set_prompt_pieces_default_value(self):
-                self.set_prompt_pieces_default_value_empty()
-
-            def set_prompt_predefine_value(self):
+            def set_macros(self):
                 pass
 
             def set_name(self):
@@ -218,20 +216,20 @@ class TestPromptBasePieceExtraction:
                 pass
 
         prompt = AutoExtractPrompt()
-        assert "name" in prompt.prompt_pieces_available
-        assert "age" in prompt.prompt_pieces_available
+        assert "name" in prompt.variables
+        assert "age" in prompt.variables
 
-    def test_auto_extract_pieces_from_system(self):
-        """Test automatic extraction of pieces from prompt (system-style example)."""
+    def test_auto_extract_variables_from_system(self):
+        """Test automatic extraction of variables from prompt (system-style example)."""
 
         class AutoExtractSystemPrompt(PromptBase):
             def set_prompt(self):
                 return "You are {assistant_type} in {domain}."
-            
-            def set_prompt_pieces_default_value(self):
-                self.set_prompt_pieces_default_value_empty()
 
-            def set_prompt_predefine_value(self):
+            def set_variable_defaults(self):
+                self.set_variable_defaults_empty()
+
+            def set_macros(self):
                 pass
 
             def set_name(self):
@@ -241,26 +239,25 @@ class TestPromptBasePieceExtraction:
                 pass
 
         prompt = AutoExtractSystemPrompt()
-        assert "assistant_type" in prompt.prompt_pieces_available
-        assert "domain" in prompt.prompt_pieces_available
+        assert "assistant_type" in prompt.variables
+        assert "domain" in prompt.variables
 
 
 class TestPromptBaseValidation:
     """Test validation logic in PromptBase."""
 
-    def test_default_not_in_available_raises_error(self):
-        """Test that defaults not in available pieces raise an error."""
+    def test_default_not_in_variables_raises_error(self):
+        """Test that defaults not in declared variables raise an error."""
 
         class InvalidDefaultPrompt(PromptBase):
             def set_prompt(self):
                 return "Hello {name}"
 
+            def set_variable_defaults(self):
+                # 'age' is not in variables
+                self.variable_defaults = {"age": "25"}
 
-            def set_prompt_pieces_default_value(self):
-                # This is invalid - 'age' is not in available pieces
-                self.prompt_pieces_default_value = {"age": "25"}
-
-            def set_prompt_predefine_value(self):
+            def set_macros(self):
                 pass
 
             def set_name(self):
@@ -269,7 +266,7 @@ class TestPromptBaseValidation:
             def set_tools(self):
                 pass
 
-        with pytest.raises(ValueError, match="not in prompt_pieces_available"):
+        with pytest.raises(ValueError, match="not in variables"):
             InvalidDefaultPrompt()
 
     def test_invalid_metadata_types_raise_error(self):
@@ -279,18 +276,17 @@ class TestPromptBaseValidation:
             def set_prompt(self):
                 return "Test"
 
+            def set_variable_defaults(self):
+                self.variable_defaults = {}
 
-            def set_prompt_pieces_default_value(self):
-                self.prompt_pieces_default_value = {}
-
-            def set_prompt_predefine_value(self):
+            def set_macros(self):
                 pass
 
             def set_name(self):
                 self.name = "InvalidMetadataPrompt"
 
             def set_tools(self):
-                # This should be a list, not a dict
+                # should be a list, not a dict
                 self.tools = {"invalid": "type"}
 
         prompt = InvalidMetadataPrompt()

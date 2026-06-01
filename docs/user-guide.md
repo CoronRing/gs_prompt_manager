@@ -55,13 +55,13 @@ print(gs_prompt_manager.__version__)
 
 A `PromptGroup` is a named bundle of related `PromptBase` instances (for example, a system / chat / pre / post variant set), accessed by key. Groups are built automatically by `PromptManager` when prompts are loaded.
 
-### Prompt Pieces
+### Variables
 
-Variables in your prompts that users provide values for, denoted by `{variable_name}`.
+User-supplied values in your prompts, denoted by `{variable_name}`.
 
-### Predefined Macros
+### Macros
 
-System-generated values that are automatically substituted, denoted by `<<MACRO_NAME>>`.
+Class-owned values that are automatically substituted at render time, denoted by `<<MACRO_NAME>>`. Unlike variables, macros are not passed by callers — they're defined on the prompt class itself (timestamps, environment info, etc.).
 
 ## Creating Prompts
 
@@ -93,8 +93,8 @@ class GreetingPrompt(PromptBase):
     def set_prompt(self):
         return "Hello, {name}! How are you today?"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"name": "Guest"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"name": "Guest"}
 
     def set_name(self):
         self.name = "GreetingPrompt"
@@ -107,15 +107,15 @@ print(prompt())  # Hello, Guest! How are you today? (uses default)
 
 ### Prompt with System Message
 
-Many LLM APIs support separate system messages. Under the new API you create separate prompt classes for each variant:
+Many LLM APIs support separate system messages. Create separate prompt classes for each variant:
 
 ```python
 class AssistantChatPrompt(PromptBase):
     def set_prompt(self):
         return "Please help me with: {task}"
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"task": "general questions"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"task": "general questions"}
 
     def set_name(self):
         self.name = "AssistantChatPrompt"
@@ -125,8 +125,8 @@ class AssistantSystemPrompt(PromptBase):
     def set_prompt(self):
         return "You are a helpful assistant specialized in {domain}."
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"domain": "general knowledge"}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"domain": "general knowledge"}
 
     def set_name(self):
         self.name = "AssistantSystemPrompt"
@@ -149,18 +149,17 @@ class AutoPrompt(PromptBase):
     def set_prompt(self):
         return "Process {input} and generate {output} in {format}"
 
-
-    def set_prompt_pieces_default_value(self):
-        # Set empty strings as defaults
-        self.set_prompt_pieces_default_value_empty()
+    def set_variable_defaults(self):
+        # Set empty strings as defaults for all extracted variables
+        self.set_variable_defaults_empty()
 
     def set_name(self):
         self.name = "AutoPrompt"
 ```
 
-### Using Predefined Macros
+### Using Macros
 
-Add dynamic values that are automatically generated:
+Add class-owned values that are automatically substituted at render time:
 
 ```python
 import datetime
@@ -169,18 +168,17 @@ class LogPrompt(PromptBase):
     def set_prompt(self):
         return "Log entry at <<DATETIME>>: {message}"
 
-    def set_prompt_predefine_value(self):
-        self.prompt_predefine_value = {
+    def set_macros(self):
+        self.macros = {
             "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
 
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"message": ""}
+    def set_variable_defaults(self):
+        self.variable_defaults = {"message": ""}
 
     def set_name(self):
         self.name = "LogPrompt"
 
-# Use it
 # Use it
 prompt = LogPrompt()
 print(prompt({"message": "User logged in"}))
@@ -244,8 +242,10 @@ manager = PromptManager(prompt_paths=[
 
 #### Getting Prompts
 
+Explicit lookup by name:
+
 ```python
-# Get a specific prompt
+# Get a specific prompt by name
 greeting = manager.get_prompt("GreetingPrompt")
 
 # Use it
@@ -256,6 +256,24 @@ all_prompts = manager.get_prompt_instances()
 for name, prompt in all_prompts.items():
     print(f"{name}: {prompt.description}")
 ```
+
+#### Attribute-Style Access
+
+`PromptManager` supports attribute-style access for both groups and prompts, so you can skip the explicit lookup call in interactive and notebook usage:
+
+```python
+# Groups take priority — returns a PromptGroup
+assistant = manager.Assistant       # equivalent to manager.get_prompt_group("Assistant")
+print(assistant.system({"domain": "programming"}))
+
+# Falls through to prompt instance when no group matches the name
+raw_prompt = manager.GreetingPrompt  # returns the PromptBase instance
+print(raw_prompt({"name": "Alice"}))
+```
+
+`dir(manager)` includes all group and prompt names, so tab-completion works in notebooks and REPLs.
+
+> **Note:** `manager.SomeName` checks groups first, then prompts. Since every prompt (including solo prompts) is placed into at least one group, most attribute accesses return a `PromptGroup`.
 
 ### Directory Structure Example
 
@@ -343,9 +361,14 @@ class AssistantChat(PromptBase):
 After loading via `PromptManager`, both end up in the group `Assistant`:
 
 ```python
+# Explicit method call
 asst = manager.get_prompt_group("Assistant")
 system_text = asst.system({"domain": "biology"})
 user_text   = asst.chat({"user_message": "Explain mitosis."})
+
+# Attribute-style shorthand (same result)
+system_text = manager.Assistant.system({"domain": "biology"})
+user_text   = manager.Assistant.chat({"user_message": "Explain mitosis."})
 ```
 
 If a class name *is* the suffix (e.g. `Chat` on its own), it does not strip to an empty group — it becomes a solo group instead.
@@ -394,9 +417,13 @@ This means every loaded prompt is reachable via `get_prompt_group` even if you d
 ```python
 manager = PromptManager(prompt_paths="./prompts")
 
+# Explicit API
 manager.get_prompt_group_names()           # list of group names
 manager.get_prompt_groups()                # dict[str, PromptGroup] (copy)
 group = manager.get_prompt_group("Assistant")
+
+# Attribute shorthand
+group = manager.Assistant                  # same as get_prompt_group("Assistant")
 
 group.get_prompt_names()                   # ["system", "chat", ...]
 group.system                               # PromptBase instance (attribute access)
@@ -417,9 +444,9 @@ If two prompts would land on the same `(group, key)` pair, the first one wins an
 
 ## Variable Substitution
 
-### Prompt Pieces (User Variables)
+### Variables (User-Provided)
 
-Variables provided by users at runtime:
+Variables are provided by callers at runtime using `{variable_name}` syntax:
 
 ```python
 class EmailPrompt(PromptBase):
@@ -447,11 +474,11 @@ email = prompt({
 
 ### Default Values
 
-Provide fallback values:
+Provide fallback values so variables are optional at call time:
 
 ```python
-def set_prompt_pieces_default_value(self):
-    self.prompt_pieces_default_value = {
+def set_variable_defaults(self):
+    self.variable_defaults = {
         "recipient": "team@example.com",
         "sender": "noreply@example.com",
         "subject": "No Subject",
@@ -459,9 +486,9 @@ def set_prompt_pieces_default_value(self):
     }
 ```
 
-### Predefined Macros (System Variables)
+### Macros (Class-Owned)
 
-Values automatically generated by the system:
+Macros use `<<NAME>>` syntax and are defined on the prompt class, not passed by callers — useful for timestamps, environment, session IDs, etc.:
 
 ```python
 import datetime
@@ -477,8 +504,8 @@ class ContextPrompt(PromptBase):
         Task: {task}
         """
 
-    def set_prompt_predefine_value(self):
-        self.prompt_predefine_value = {
+    def set_macros(self):
+        self.macros = {
             "<<DATETIME>>": datetime.datetime.now().isoformat(),
             "<<USERNAME>>": os.getenv("USER", "unknown"),
             "<<ENVIRONMENT>>": os.getenv("ENV", "development")
@@ -490,13 +517,13 @@ class ContextPrompt(PromptBase):
 
 ### Dynamic Macro Values
 
-Update macros at runtime:
+Add or update macros at runtime:
 
 ```python
 prompt = ContextPrompt()
 
-# Add new macro
-prompt.add_prompt_predefine_value("<<CONFIG>>", "production")
+# Add a new macro dynamically
+prompt.add_macro("<<CONFIG>>", "production")
 
 # Use it
 result = prompt({"task": "Process data"})
@@ -550,12 +577,11 @@ class WellDocumentedPrompt(PromptBase):
     # ... rest of implementation
 ```
 
-### 4. Validate Inputs
+### 4. Provide Variable Defaults
 
 ```python
-def set_prompt_pieces_default_value(self):
-    # Always provide defaults
-    self.prompt_pieces_default_value = {
+def set_variable_defaults(self):
+    self.variable_defaults = {
         "user_input": "",
         "context": "general"
     }
@@ -607,7 +633,7 @@ print(manager.get_prompt_names())
 
 ### Missing Required Variable
 
-**Error:** `ValueError: Prompt piece 'name' required`
+**Error:** `ValueError: Variable 'name' required`
 
 **Solution:** Provide the required variable or set a default:
 
@@ -616,8 +642,8 @@ print(manager.get_prompt_names())
 prompt({"name": "Alice"})
 
 # Option 2: Set a default
-def set_prompt_pieces_default_value(self):
-    self.prompt_pieces_default_value = {"name": "Guest"}
+def set_variable_defaults(self):
+    self.variable_defaults = {"name": "Guest"}
 ```
 
 ### Invalid Path
@@ -651,6 +677,14 @@ print(manager.get_prompt_group_names())
 print({n: g.get_prompt_names() for n, g in manager.get_prompt_groups().items()})
 ```
 
+### AttributeError on manager.X
+
+**Error:** `AttributeError: PromptManager has no attribute 'X'`
+
+**Cause:** `manager.X` checks groups first, then prompts. The name `X` is in neither. Note that suffix auto-detection changes group names — `ExampleChat` → group `Example`, so `manager.Example` works but `manager.ExampleChat` returns the bare prompt instance.
+
+**Solution:** Use `manager.get_prompt_group_names()` and `manager.get_prompt_names()` (or `dir(manager)`) to see what names are available.
+
 ### Duplicate Prompt Names
 
 **Warning:** `Duplicate prompt class 'MyPrompt' found`
@@ -682,6 +716,5 @@ pip install -e .
 
 ## Next Steps
 
-- Check out the [API Reference](api-reference.md) for detailed method documentation
 - See [Examples](examples.md) for real-world usage patterns
 - Read [Contributing Guide](../CONTRIBUTING.md) to contribute to the project

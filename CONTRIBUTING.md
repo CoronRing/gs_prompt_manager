@@ -182,7 +182,7 @@ Users requested the ability to compose prompts from other prompts
 
 ## How
 
-- Extended PromptBase with `associated_prompt` field
+- Extended PromptBase with `related_prompt` field
 - Updated PromptManager to handle prompt dependencies
 - Added recursive resolution of nested prompts
 

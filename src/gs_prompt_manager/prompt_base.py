@@ -6,6 +6,7 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+
 class PromptBase:
     """
     Abstract base class for prompt templates, enforcing custom creation via several sub-methods.
@@ -18,9 +19,9 @@ class PromptBase:
         description: str = "",
         description_long: str = "",
         prompt: str = "",
-        prompt_pieces_available: Optional[list] = None,
-        prompt_pieces_default_value: Optional[dict] = None,
-        prompt_predefine_value: Optional[dict] = None,
+        variables: Optional[list] = None,
+        variable_defaults: Optional[dict] = None,
+        macros: Optional[dict] = None,
         name: str = "",
         tags: Optional[list] = None,
         author: str = "",
@@ -33,14 +34,13 @@ class PromptBase:
     ):
         self.verbose = verbose
 
-        # Instance field setup with safe defaults
         self.description = description
         self.description_long = description_long
 
         self.prompt = prompt
-        self.prompt_pieces_available = prompt_pieces_available if prompt_pieces_available is not None else []
-        self.prompt_pieces_default_value = prompt_pieces_default_value if prompt_pieces_default_value is not None else {}
-        self.prompt_predefine_value = prompt_predefine_value if prompt_predefine_value is not None else {}
+        self.variables = variables if variables is not None else []
+        self.variable_defaults = variable_defaults if variable_defaults is not None else {}
+        self.macros = macros if macros is not None else {}
 
         self.name = name
         self.tags = tags if tags is not None else []
@@ -49,7 +49,7 @@ class PromptBase:
         self.timestamp = timestamp
         self.tools = tools if tools is not None else []
         self.expected_config = expected_config if expected_config is not None else {}
-        self.example = example if example is not None else {"sample_piece": "", "sample_response": ""}
+        self.example = example if example is not None else {"sample_variable": "", "sample_response": ""}
 
         # Delegate to subclass "set_*" logic if not given in init
         self.set_tools()
@@ -64,23 +64,22 @@ class PromptBase:
             if set_val:
                 self.name = set_val
 
-        if not self.prompt_pieces_available:
-            set_val = self.set_prompt_pieces_available()
+        if not self.variables:
+            set_val = self.set_variables()
             if set_val:
-                self.prompt_pieces_available = set_val
+                self.variables = set_val
 
-        if not self.prompt_pieces_default_value:
-            set_val = self.set_prompt_pieces_default_value()
+        if not self.variable_defaults:
+            set_val = self.set_variable_defaults()
             if set_val:
-                self.prompt_pieces_default_value = set_val
+                self.variable_defaults = set_val
 
-        if not self.prompt_predefine_value:
-            set_val = self.set_prompt_predefine_value()
+        if not self.macros:
+            set_val = self.set_macros()
             if set_val:
-                self.prompt_predefine_value = set_val
+                self.macros = set_val
 
-        # Post-processing and required validation
-        self._check_default_prompt_pieces()
+        self._check_variable_defaults()
         self._check_required_fields()
 
     ###### Abstract set_* methods for subclass implementation #######
@@ -94,70 +93,67 @@ class PromptBase:
         pass
 
     @abstractmethod
-    def set_prompt_predefine_value(self) -> Optional[dict]:
+    def set_macros(self) -> Optional[dict]:
         """
-        Subclass defines self.prompt_predefine_value (dict with macros). Return
-        the dict, or set self.prompt_predefine_value directly and return None.
+        Subclass defines self.macros (dict mapping <<KEY>> to replacement value).
+        Return the dict, or set self.macros directly and return None.
         """
         return {
             "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-    def add_prompt_predefine_value(self, key: str, value: str):
-        """
-        Add a predefine macro key-value pair.
-        """
-        self.prompt_predefine_value[key] = value
+    def add_macro(self, key: str, value: str):
+        """Add a macro substitution (<<key>> → value)."""
+        self.macros[key] = value
 
     @abstractmethod
-    def set_prompt_pieces_default_value(self) -> Optional[dict]:
+    def set_variable_defaults(self) -> Optional[dict]:
         """
-        Subclass defines self.prompt_pieces_default_value (dict of defaults).
+        Subclass defines self.variable_defaults (dict of default values for variables).
         Return the dict, or set the attribute directly and return None.
         """
-        for piece in self.prompt_pieces_available:
-            if piece not in self.prompt_pieces_default_value:
+        for var in self.variables:
+            if var not in self.variable_defaults:
                 if self.verbose:
                     logger.warning(
-                        f"Default for '{piece}' not set in class, consider using `set_prompt_pieces_default_value_empty`"
+                        f"Default for '{var}' not set in class, consider using `set_variable_defaults_empty`"
                     )
         return None
 
-    def add_prompt_piece_default_value(self, piece: str, default_value: str):
-        """
-        Add a default value for a specific prompt piece.
-        """
-        self.prompt_pieces_default_value[piece] = default_value
+    def add_variable_default(self, name: str, value: str):
+        """Add a default value for a specific prompt variable."""
+        self.variable_defaults[name] = value
 
-    def set_prompt_pieces_default_value_empty(self):
-        for piece in self.prompt_pieces_available:
-            if piece not in self.prompt_pieces_default_value:
-                self.prompt_pieces_default_value[piece] = ""
+    def set_variable_defaults_empty(self):
+        """Set any variable that has no default to an empty string."""
+        for var in self.variables:
+            if var not in self.variable_defaults:
+                self.variable_defaults[var] = ""
                 if self.verbose:
                     logger.warning(
-                        f"Default for '{piece}' not set in class '{self.name}'; using empty string."
+                        f"Default for '{var}' not set in class '{self.name}'; using empty string."
                     )
 
     @abstractmethod
-    def set_prompt_pieces_available(self) -> Optional[list]:
+    def set_variables(self) -> Optional[list]:
         """
-        Subclass defines self.prompt_pieces_available as a list. Return the list,
-        or set the attribute directly and return None.
-        Default: extract {key} names from prompt.
+        Subclass defines self.variables as a list of placeholder names. Return
+        the list, or set the attribute directly and return None.
+        Default: auto-extract {key} names from prompt.
         """
         try:
-            self.prompt_pieces_available = regex.findall(r"\{(.*?)\}", self.prompt)
+            self.variables = regex.findall(r"\{(.*?)\}", self.prompt)
         except Exception as e:
             logger.error(
                 (
-                    f"Error extracting prompt pieces from prompt in class '{self.name}':\n",
+                    f"Error extracting variables from prompt in class '{self.name}':\n",
                     f"Prompt: {self.prompt}",
                     f"Exception: {e}",
                 )
             )
             raise e
         if self.verbose:
-            logger.info(f"Pieces for {self.name}: {self.prompt_pieces_available}")
+            logger.info(f"Variables for {self.name}: {self.variables}")
         return None
 
     @abstractmethod
@@ -181,22 +177,17 @@ class PromptBase:
 
     ###### Validation logic #######
 
-    def _check_default_prompt_pieces(self):
-        """
-        Ensure default/available prompt pieces coverage and validity.
-        """
-
-        # Error if anything in defaults isn't in allowed
-        for key in self.prompt_pieces_default_value.keys():
-            if key not in self.prompt_pieces_available:
+    def _check_variable_defaults(self):
+        """Ensure every key in variable_defaults is declared in self.variables."""
+        for key in self.variable_defaults.keys():
+            if key not in self.variables:
                 raise ValueError(
-                    f"Prompt piece '{key}' in defaults, but not in prompt_pieces_available. Allowed: {self.prompt_pieces_available}"
+                    f"Variable '{key}' in variable_defaults, but not in variables. "
+                    f"Allowed: {self.variables}"
                 )
 
     def _check_required_fields(self):
-        """
-        Ensure all mandatory fields are set.
-        """
+        """Ensure all mandatory fields are set."""
         for param in ["name", "version"]:
             val = getattr(self, param)
             if not val:
@@ -209,10 +200,7 @@ class PromptBase:
     ###### API #######
 
     def get_metadata(self) -> dict:
-        """
-        Return a (JSON serializable) dictionary describing this PromptBase.
-        """
-        # Validate types
+        """Return a (JSON serializable) dictionary describing this PromptBase."""
         for attr, expected in [
             ("expected_config", dict),
             ("example", dict),
@@ -229,8 +217,8 @@ class PromptBase:
             "description": self.description,
             "description_long": self.description_long,
             "name": self.name,
-            "default_prompt_pieces": self.prompt_pieces_default_value,
-            "predefine_prompt_pieces": self.prompt_predefine_value,
+            "variable_defaults": self.variable_defaults,
+            "macros": self.macros,
             "tags": self.tags,
             "author": self.author,
             "version": self.version,
@@ -241,96 +229,72 @@ class PromptBase:
         }
 
     def _get_prompt(
-        self, base: str, prompt_pieces: dict = {}, no_warning: bool = False
+        self, base: str, variables: dict = {}, no_warning: bool = False
     ) -> str:
-        """
-        Fill the prompt string's placeholders with provided (or default) prompt_pieces and predef macros.
-        """
-        prompt_pieces = prompt_pieces
-
-        # Validate prompt input keys
-        for key in prompt_pieces:
-            if key not in self.prompt_pieces_available:
-                error_message = (
-                    f"Unknown piece '{key}' in prompt input for {self.name}. \n"
-                    f"Allowed: {list(self.prompt_pieces_available)}"
-                )
+        """Fill the prompt string's placeholders with provided (or default) variables and macros."""
+        for key in variables:
+            if key not in self.variables:
                 logger.warning(
-                    error_message,
+                    f"Unknown variable '{key}' in prompt input for {self.name}. \n"
+                    f"Allowed: {list(self.variables)}"
                 )
 
         result = base
 
-        # Substitute all {var}
-        for key in self.prompt_pieces_available:
-            if key in prompt_pieces and prompt_pieces[key] is not None:
-                value = str(prompt_pieces[key])
+        for key in self.variables:
+            if key in variables and variables[key] is not None:
+                value = str(variables[key])
             elif (
-                key in self.prompt_pieces_default_value
-                and self.prompt_pieces_default_value[key] is not None
+                key in self.variable_defaults
+                and self.variable_defaults[key] is not None
             ):
-                value = str(self.prompt_pieces_default_value[key])
+                value = str(self.variable_defaults[key])
             else:
-                error_message = f"Prompt piece '{key}' required in prompt input for {self.name}; none given and no default."
-
+                error_message = (
+                    f"Variable '{key}' required in prompt input for {self.name}; "
+                    f"none given and no default."
+                )
                 logger.error(error_message, exc_info=True)
                 raise ValueError(error_message)
             result = result.replace(f"{{{key}}}", value)
 
-        # Substitute all <<VAR>>
-        for key, v in self.prompt_predefine_value.items():
+        for key, v in self.macros.items():
             result = result.replace(key, str(v))
 
-        # Warn about remaining <<VAR>>
         if not no_warning:
             for unmatched in regex.findall(r"<<(.*?)>>", result):
-                if f"<<{unmatched}>>" not in self.prompt_predefine_value:
+                if f"<<{unmatched}>>" not in self.macros:
                     logger.warning(
                         f"Unresolved macro '<<{unmatched}>>' in rendered prompt for {self.name}."
                     )
         return result
 
-    def get_prompt(self, prompt_pieces: dict = {}, no_warning: bool = False) -> str:
-        """
-        Get the filled prompt string with provided (or default) prompt_pieces and predef macros.
-        """
-        return self._get_prompt(self.prompt, prompt_pieces, no_warning=no_warning)
+    def get_prompt(self, variables: dict = {}, no_warning: bool = False) -> str:
+        """Get the filled prompt string with provided (or default) variables and macros."""
+        return self._get_prompt(self.prompt, variables, no_warning=no_warning)
 
     def __str__(self) -> str:
-        # return raw, if default exist, insert, if required, leave as is ie {item}
-        # Start from the raw template
         result = self.prompt
 
-        # Insert any available default values; leave required placeholders unchanged
-        for key in self.prompt_pieces_available:
+        for key in self.variables:
             if (
-                key in self.prompt_pieces_default_value
-                and self.prompt_pieces_default_value[key] is not None
+                key in self.variable_defaults
+                and self.variable_defaults[key] is not None
             ):
-                result = result.replace(f"{{{key}}}", str(self.prompt_pieces_default_value[key]))
+                result = result.replace(f"{{{key}}}", str(self.variable_defaults[key]))
 
-        # Substitute predefined macros like <<DATETIME>> when available
-        for key, v in (self.prompt_predefine_value or {}).items():
+        for key, v in (self.macros or {}).items():
             result = result.replace(key, str(v))
 
         return result
 
-    def __call__(self, prompt_pieces: dict = {}, no_warning: bool = False) -> str:
-        """
-        Allow prompt instances to be called like a function to render the prompt.
-        Example: prompt = manager.get_prompt('X'); result = prompt({'var':'value'})
-        """
-        return self.get_prompt(prompt_pieces, no_warning=no_warning)
-    
+    def __call__(self, variables: dict = {}, no_warning: bool = False) -> str:
+        """Allow prompt instances to be called like a function to render the prompt."""
+        return self.get_prompt(variables, no_warning=no_warning)
+
     @staticmethod
     def _escape_braces(line: str) -> str:
-        """
-        Make unmatched { or } into double braces for safe formatting.
-        """
-        # Replace single {, unless already part of {{
+        """Make unmatched { or } into double braces for safe formatting."""
         escaped = regex.sub(r"(?<!{){(?!{)", "{{", line)
         escaped = regex.sub(r"(?<!})}(?!})", "}}", escaped)
         return escaped
-
-    ###### Example MVP usage/test #######
-    # This part can be removed in production modules

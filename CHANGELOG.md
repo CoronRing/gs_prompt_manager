@@ -2,6 +2,23 @@
 
 All notable changes to gs_prompt_manager will be documented in this file. Only keep code changes here.
 
+## [0.0.8]
+
+### Changed
+
+- Renamed `prompt_pieces_available` → `variables`, `prompt_pieces_default_value` → `variable_defaults`, `prompt_predefine_value` → `macros` throughout `PromptBase` (constructor params, instance attributes, abstract methods, and helpers)
+- Renamed abstract methods: `set_prompt_pieces_available()` → `set_variables()`, `set_prompt_pieces_default_value()` → `set_variable_defaults()`, `set_prompt_predefine_value()` → `set_macros()`
+- Renamed helpers: `add_prompt_piece_default_value(piece, value)` → `add_variable_default(name, value)`, `add_prompt_predefine_value(key, value)` → `add_macro(key, value)`, `set_prompt_pieces_default_value_empty()` → `set_variable_defaults_empty()`
+- `get_prompt(prompt_pieces)` / `__call__(prompt_pieces)` parameter renamed to `variables`
+- `get_metadata()` keys `"default_prompt_pieces"` → `"variable_defaults"` and `"predefine_prompt_pieces"` → `"macros"`
+- Renamed internal `_check_default_prompt_pieces()` → `_check_variable_defaults()`
+- Renamed `PromptManager.prompt_objects` → `prompt_classes` for clarity
+
+### Added
+
+- `PromptManager.__getattr__`: attribute-style access for groups and prompts (`manager.MyGroup`, `manager.MyPrompt`); groups take priority over bare prompt instances
+- `PromptManager.__dir__`: includes group and prompt names in tab-completion
+
 ## [0.0.7]
 
 ### Added

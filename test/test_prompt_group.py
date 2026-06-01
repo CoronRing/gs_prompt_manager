@@ -85,10 +85,10 @@ def _make_prompt(name, prompt_text="Hello {x}", default_x="world"):
         def set_prompt(self):
             return prompt_text
 
-        def set_prompt_pieces_default_value(self):
-            self.prompt_pieces_default_value = {"x": default_x}
+        def set_variable_defaults(self):
+            self.variable_defaults = {"x": default_x}
 
-        def set_prompt_predefine_value(self):
+        def set_macros(self):
             pass
 
         def set_name(self):
@@ -153,7 +153,6 @@ class TestPromptGroup:
         g = PromptGroup("G")
         g.add("chat", _make_prompt("Chat", "chat: {x}", "chat-x"))
         g.add("default", _make_prompt("Default", "default: {x}", "def-x"))
-        # default wins
         assert str(g) == "default: def-x"
 
     def test_str_priority_chat_when_no_default(self):
@@ -172,7 +171,6 @@ class TestPromptGroup:
         assert "(empty)" in str(g)
 
     def test_group_call_via_attribute(self):
-        # group.system is a PromptBase, so group.system() renders it
         g = PromptGroup("G")
         g.add("system", _make_prompt("Sys", "Hi {x}", "there"))
         assert g.system() == "Hi there"
@@ -186,13 +184,11 @@ class TestPromptGroup:
         assert sorted(g.get_prompt_names()) == ["chat", "system"]
         prompts = g.get_prompts()
         assert prompts == {"chat": a, "system": b}
-        # Mutating the returned dict must not affect the group
         prompts.clear()
         assert "chat" in g
 
     def test_private_attribute_access_raises(self):
         g = PromptGroup("G")
-        # Internal/private names should not be treated as prompt keys.
         with pytest.raises(AttributeError):
             _ = g._anything
 
@@ -217,16 +213,16 @@ def _write_prompt_file(dir_, filename, code):
 @pytest.fixture
 def group_prompt_dir():
     temp_dir = tempfile.mkdtemp()
-    # Suffix-based auto-grouping: Example, ExampleChat, ExampleSystem
+    # Suffix-based auto-grouping
     _write_prompt_file(temp_dir, "example_prompts.py", """
 from gs_prompt_manager import PromptBase
 
 class ExampleChat(PromptBase):
     def set_prompt(self):
         return "Chat: {msg}"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"msg": "hi"}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {"msg": "hi"}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ExampleChat"
@@ -236,9 +232,9 @@ class ExampleChat(PromptBase):
 class ExampleSystem(PromptBase):
     def set_prompt(self):
         return "System: {role}"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"role": "assistant"}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {"role": "assistant"}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ExampleSystem"
@@ -252,9 +248,9 @@ from gs_prompt_manager import PromptBase
 class SampleSpecial(PromptBase):
     def set_prompt(self):
         return "Special: {x}"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"x": "alone"}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {"x": "alone"}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "SampleSpecial"
@@ -269,9 +265,9 @@ from gs_prompt_manager import PromptBase, prompt_group
 class ABC_special(PromptBase):
     def set_prompt(self):
         return "ABC special: {x}"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"x": "v"}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {"x": "v"}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ABC_special"
@@ -282,9 +278,9 @@ class ABC_special(PromptBase):
 class ABCSecond(PromptBase):
     def set_prompt(self):
         return "ABC second: {y}"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {"y": "v"}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {"y": "v"}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ABCSecond"
@@ -308,7 +304,6 @@ class TestPromptManagerGroupResolution:
         example = manager.get_prompt_group("Example")
         assert "chat" in example
         assert "system" in example
-        # The grouped prompts are the actual instances
         assert example.chat is manager.get_prompt("ExampleChat")
         assert example.system is manager.get_prompt("ExampleSystem")
 
@@ -321,9 +316,7 @@ class TestPromptManagerGroupResolution:
     def test_decorator_derived_key(self, group_prompt_dir):
         manager = PromptManager(prompt_paths=group_prompt_dir)
         abc = manager.get_prompt_group("ABC")
-        # ABC_special -> "special"
         assert "special" in abc
-        # @prompt_group("ABC", "renamed") forces "renamed"
         assert "renamed" in abc
 
     def test_render_through_group(self, group_prompt_dir):
@@ -341,18 +334,38 @@ class TestPromptManagerGroupResolution:
         manager = PromptManager(prompt_paths=group_prompt_dir)
         groups = manager.get_prompt_groups()
         groups.pop("Example", None)
-        # Internal state must be unaffected
         assert "Example" in manager.get_prompt_group_names()
+
+    def test_manager_getattr_group(self, group_prompt_dir):
+        """manager.Example returns the PromptGroup directly."""
+        manager = PromptManager(prompt_paths=group_prompt_dir)
+        group = manager.Example
+        assert isinstance(group, PromptGroup)
+        assert group is manager.get_prompt_group("Example")
+
+    def test_manager_getattr_prompt_fallback(self, group_prompt_dir):
+        """When no group matches, attribute access falls back to the prompt instance."""
+        manager = PromptManager(prompt_paths=group_prompt_dir)
+        # SampleSpecial has a solo group; attribute access returns the group, not bare prompt
+        result = manager.SampleSpecial
+        assert isinstance(result, PromptGroup)
+
+    def test_manager_getattr_unknown_raises(self, group_prompt_dir):
+        manager = PromptManager(prompt_paths=group_prompt_dir)
+        with pytest.raises(AttributeError):
+            _ = manager.DoesNotExistAtAll
+
+    def test_manager_dir_includes_names(self, group_prompt_dir):
+        manager = PromptManager(prompt_paths=group_prompt_dir)
+        d = dir(manager)
+        assert "Example" in d
+        assert "ABC" in d
 
 
 class TestSampleDirGrouping:
     """The bundled sample directory: PromptHelloWorld + PromptHelloWorldSystem."""
 
     def test_hello_world_groups_resolved(self):
-        # "PromptHelloWorld" has no recognized trailing suffix -> solo group with
-        # key "default". "PromptHelloWorldSystem" ends with "system" -> joins the
-        # group "PromptHelloWorld" with key "system". Both prompts land in the
-        # same group "PromptHelloWorld".
         current_dir = os.path.dirname(os.path.abspath(__file__))
         sample_dir = os.path.join(current_dir, "sample_prompts")
         manager = PromptManager(prompt_paths=sample_dir)
@@ -379,9 +392,9 @@ from gs_prompt_manager import PromptBase, prompt_group
 class ZZ_first(PromptBase):
     def set_prompt(self):
         return "first"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ZZ_first"
@@ -392,9 +405,9 @@ class ZZ_first(PromptBase):
 class ZZ_second(PromptBase):
     def set_prompt(self):
         return "second"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "ZZ_second"
@@ -407,7 +420,7 @@ class ZZ_second(PromptBase):
 
 @pytest.fixture
 def all_suffixes_dir():
-    """One group with all 5 suffix variants plus a default member."""
+    """One group with all suffix variants plus a default member."""
     temp_dir = tempfile.mkdtemp()
     _write_prompt_file(temp_dir, "full.py", """
 from gs_prompt_manager import PromptBase
@@ -415,9 +428,9 @@ from gs_prompt_manager import PromptBase
 class Workflow(PromptBase):
     def set_prompt(self):
         return "workflow"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "Workflow"
@@ -427,9 +440,9 @@ class Workflow(PromptBase):
 class WorkflowSystem(PromptBase):
     def set_prompt(self):
         return "system"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "WorkflowSystem"
@@ -439,9 +452,9 @@ class WorkflowSystem(PromptBase):
 class WorkflowChat(PromptBase):
     def set_prompt(self):
         return "chat"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "WorkflowChat"
@@ -451,9 +464,9 @@ class WorkflowChat(PromptBase):
 class WorkflowPre(PromptBase):
     def set_prompt(self):
         return "pre"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "WorkflowPre"
@@ -463,9 +476,9 @@ class WorkflowPre(PromptBase):
 class WorkflowPost(PromptBase):
     def set_prompt(self):
         return "post"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "WorkflowPost"
@@ -475,9 +488,9 @@ class WorkflowPost(PromptBase):
 class WorkflowMessage(PromptBase):
     def set_prompt(self):
         return "message"
-    def set_prompt_pieces_default_value(self):
-        self.prompt_pieces_default_value = {}
-    def set_prompt_predefine_value(self):
+    def set_variable_defaults(self):
+        self.variable_defaults = {}
+    def set_macros(self):
         pass
     def set_name(self):
         self.name = "WorkflowMessage"
@@ -494,7 +507,6 @@ class TestGroupCollision:
         with caplog.at_level(logging.WARNING):
             manager = PromptManager(prompt_paths=collision_prompt_dir)
         group = manager.get_prompt_group("ZZ")
-        # Only one entry under "shared" — the first wins, second is skipped.
         assert len(group) == 1
         assert "shared" in group
         assert any("already has key 'shared'" in r.message for r in caplog.records)
@@ -506,7 +518,6 @@ class TestAllSuffixesInOneGroup:
         group = manager.get_prompt_group("Workflow")
         for key in ("default", "system", "chat", "pre", "post", "message"):
             assert key in group, f"missing key '{key}' in group"
-        # Solo Workflow is "default"; render checks each
         assert group.default() == "workflow"
         assert group.system() == "system"
         assert group.chat() == "chat"
@@ -517,22 +528,21 @@ class TestAllSuffixesInOneGroup:
     def test_str_picks_default_when_present(self, all_suffixes_dir):
         manager = PromptManager(prompt_paths=all_suffixes_dir)
         group = manager.get_prompt_group("Workflow")
-        # default exists, so str(group) renders it
         assert str(group) == "workflow"
 
 
 class TestGetMetadataWithoutRelatedPrompt:
-    """Confirm get_metadata works (and excludes related_prompt) after the refactor."""
+    """Confirm get_metadata works and uses the new key names."""
 
-    def test_metadata_excludes_related_prompt(self):
+    def test_metadata_has_variable_defaults_and_macros(self):
         class _P(PromptBase):
             def set_prompt(self):
                 return "Hello {x}"
 
-            def set_prompt_pieces_default_value(self):
-                self.prompt_pieces_default_value = {"x": "world"}
+            def set_variable_defaults(self):
+                self.variable_defaults = {"x": "world"}
 
-            def set_prompt_predefine_value(self):
+            def set_macros(self):
                 pass
 
             def set_name(self):
@@ -543,7 +553,9 @@ class TestGetMetadataWithoutRelatedPrompt:
 
         meta = _P().get_metadata()
         assert "related_prompt_names" not in meta
-        assert "name" in meta and meta["name"] == "MetaProbe"
+        assert "variable_defaults" in meta
+        assert "macros" in meta
+        assert meta["name"] == "MetaProbe"
 
 
 class TestDecoratorOnInstance:
