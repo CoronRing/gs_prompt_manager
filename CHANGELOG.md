@@ -2,6 +2,16 @@
 
 All notable changes to gs_prompt_manager will be documented in this file. Only keep code changes here.
 
+## [0.0.7]
+
+### Added
+
+- Tutorial Jupyter notebook (`docs/tutorial.ipynb`) covering every feature of the library end-to-end
+
+### Fixed
+
+- Added `Optional[...]` return-type annotations to all `set_*` abstract methods on `PromptBase` so subclasses that `return "..."` no longer trigger Pylance / pyright `reportIncompatibleMethodOverride` warnings
+
 ## [0.0.6]
 
 ### Added

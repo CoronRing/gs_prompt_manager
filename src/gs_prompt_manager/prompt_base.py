@@ -86,21 +86,23 @@ class PromptBase:
     ###### Abstract set_* methods for subclass implementation #######
 
     @abstractmethod
-    def set_prompt(self):
+    def set_prompt(self) -> Optional[str]:
         """
-        Subclass defines self.prompt (template str).
+        Subclass defines self.prompt (template str). Return the template, or
+        set self.prompt directly and return None.
         """
         pass
-    
+
     @abstractmethod
-    def set_prompt_predefine_value(self):
+    def set_prompt_predefine_value(self) -> Optional[dict]:
         """
-        Subclass defines self.prompt_predefine_value (dict with keys to replace in prompt).
+        Subclass defines self.prompt_predefine_value (dict with macros). Return
+        the dict, or set self.prompt_predefine_value directly and return None.
         """
         return {
             "<<DATETIME>>": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
-        
+
     def add_prompt_predefine_value(self, key: str, value: str):
         """
         Add a predefine macro key-value pair.
@@ -108,9 +110,10 @@ class PromptBase:
         self.prompt_predefine_value[key] = value
 
     @abstractmethod
-    def set_prompt_pieces_default_value(self):
+    def set_prompt_pieces_default_value(self) -> Optional[dict]:
         """
-        Subclass defines self.prompt_pieces_default_value (dict with defaults for prompt pieces).
+        Subclass defines self.prompt_pieces_default_value (dict of defaults).
+        Return the dict, or set the attribute directly and return None.
         """
         for piece in self.prompt_pieces_available:
             if piece not in self.prompt_pieces_default_value:
@@ -118,7 +121,7 @@ class PromptBase:
                     logger.warning(
                         f"Default for '{piece}' not set in class, consider using `set_prompt_pieces_default_value_empty`"
                     )
-        pass
+        return None
 
     def add_prompt_piece_default_value(self, piece: str, default_value: str):
         """
@@ -136,9 +139,10 @@ class PromptBase:
                     )
 
     @abstractmethod
-    def set_prompt_pieces_available(self):
+    def set_prompt_pieces_available(self) -> Optional[list]:
         """
-        Subclass defines self.prompt_pieces_available as a list.
+        Subclass defines self.prompt_pieces_available as a list. Return the list,
+        or set the attribute directly and return None.
         Default: extract {key} names from prompt.
         """
         try:
@@ -154,20 +158,24 @@ class PromptBase:
             raise e
         if self.verbose:
             logger.info(f"Pieces for {self.name}: {self.prompt_pieces_available}")
+        return None
 
     @abstractmethod
-    def set_name(self):
+    def set_name(self) -> Optional[str]:
         """
-        Subclass sets self.name. Default: class name.
+        Subclass sets self.name. Return the name, or set self.name directly
+        and return None. Default: class name.
         """
         self.name = self.__class__.__name__
         if self.verbose:
             logger.info(f"No name set; using class name: {self.name}")
+        return None
 
     @abstractmethod
-    def set_tools(self):
+    def set_tools(self) -> None:
         """
-        Subclass sets self.tools (identifiers of allowed tools).
+        Subclass sets self.tools (identifiers of allowed tools). Return value
+        is ignored — set self.tools on the instance.
         """
         self.tools = []
 

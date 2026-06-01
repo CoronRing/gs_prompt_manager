@@ -138,3 +138,7 @@ ticket_*
 # Credentials / secrets — never commit these
 .pypirc
 *.pypirc
+
+# Agent / temp work
+.agent_temp/
+.log/
