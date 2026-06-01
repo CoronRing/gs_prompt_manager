@@ -4,14 +4,14 @@ site_url: https://gs-prompt-manager.readthedocs.io/
 repo_url: https://github.com/CoronRing/gs_prompt_manager
 repo_name: CoronRing/gs_prompt_manager
 
-docs_dir: .
+docs_dir: docs
 
 nav:
-  - Home: README.md
-  - User Guide: docs/user-guide.md
-  - Examples: docs/examples.md
-  - Migration Guide: docs/migration.md
-  - Changelog: CHANGELOG.md
+  - Home: index.md
+  - User Guide: user-guide.md
+  - Examples: examples.md
+  - Migration Guide: migration.md
+  - Changelog: changelog.md
 
 theme:
   name: material
@@ -39,6 +39,8 @@ markdown_extensions:
       anchor_linenums: true
   - pymdownx.superfences
   - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
   - admonition
   - tables
   - toc:
