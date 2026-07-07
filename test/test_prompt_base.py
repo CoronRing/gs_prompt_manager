@@ -243,6 +243,74 @@ class TestPromptBaseVariableExtraction:
         assert "domain" in prompt.variables
 
 
+class TestPromptBaseBraceEscaping:
+    """Test escaping of literal curly braces with backslashes (``\\{`` / ``\\}``)."""
+
+    def test_escaped_braces_not_extracted_as_variables(self):
+        """Escaped braces must not be picked up by auto-extraction."""
+
+        class EscapedPrompt(PromptBase):
+            def set_prompt(self):
+                return r"Return JSON like \{key: value\} for {topic}."
+
+            def set_variable_defaults(self):
+                self.set_variable_defaults_empty()
+
+            def set_macros(self):
+                pass
+
+            def set_name(self):
+                self.name = "EscapedPrompt"
+
+            def set_tools(self):
+                pass
+
+        prompt = EscapedPrompt()
+        assert prompt.variables == ["topic"]
+
+    def test_escaped_braces_render_as_literals(self):
+        """Escaped braces render as literal braces; real variables still fill."""
+        prompt = PromptBase(
+            prompt=r"Emit \{raw\} and greet {name}",
+            variable_defaults={"name": "World"},
+            name="EscapeRender",
+            version="1.0",
+        )
+        assert prompt() == "Emit {raw} and greet World"
+        assert prompt({"name": "Alice"}) == "Emit {raw} and greet Alice"
+
+    def test_escaped_braces_do_not_require_a_value(self):
+        """A ``\\{...\\}`` token must not become a required variable."""
+        prompt = PromptBase(
+            prompt=r"Only literal \{not_a_var\} here",
+            name="EscapeNoVar",
+            version="1.0",
+        )
+        # Would raise ValueError if 'not_a_var' were treated as required.
+        assert prompt() == "Only literal {not_a_var} here"
+
+    def test_variable_value_containing_braces_is_preserved(self):
+        """Substituted values may themselves contain braces without corruption."""
+        prompt = PromptBase(
+            prompt="Payload: {body}",
+            variables=["body"],
+            variable_defaults={"body": ""},
+            name="BraceValue",
+            version="1.0",
+        )
+        assert prompt({"body": "{a: 1}"}) == "Payload: {a: 1}"
+
+    def test_str_respects_escaped_braces(self):
+        """__str__ renders escaped braces as literals too."""
+        prompt = PromptBase(
+            prompt=r"Literal \{x\} and {name}",
+            variable_defaults={"name": "World"},
+            name="EscapeStr",
+            version="1.0",
+        )
+        assert str(prompt) == "Literal {x} and World"
+
+
 class TestPromptBaseValidation:
     """Test validation logic in PromptBase."""
 
