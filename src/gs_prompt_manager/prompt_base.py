@@ -6,6 +6,22 @@ import datetime
 
 logger = logging.getLogger(__name__)
 
+# Internal sentinels used to shield escaped braces (``\{`` / ``\}``) from
+# variable extraction and substitution. They wrap NUL bytes so they cannot
+# collide with real template text or substituted values.
+_ESCAPED_LBRACE = "\x00gspm-lbrace\x00"
+_ESCAPED_RBRACE = "\x00gspm-rbrace\x00"
+
+
+def _shield_escaped_braces(text: str) -> str:
+    """Replace escaped braces (``\\{`` / ``\\}``) with internal sentinels."""
+    return text.replace("\\{", _ESCAPED_LBRACE).replace("\\}", _ESCAPED_RBRACE)
+
+
+def _restore_escaped_braces(text: str) -> str:
+    """Turn sentinels back into literal, un-escaped braces (``{`` / ``}``)."""
+    return text.replace(_ESCAPED_LBRACE, "{").replace(_ESCAPED_RBRACE, "}")
+
 
 class PromptBase:
     """
@@ -139,10 +155,13 @@ class PromptBase:
         """
         Subclass defines self.variables as a list of placeholder names. Return
         the list, or set the attribute directly and return None.
-        Default: auto-extract {key} names from prompt.
+        Default: auto-extract {key} names from prompt. Escaped braces
+        (``\\{`` / ``\\}``) are treated as literal text and are not extracted.
         """
         try:
-            self.variables = regex.findall(r"\{(.*?)\}", self.prompt)
+            # Shield escaped braces so ``\{not_a_var\}`` is not picked up.
+            shielded = _shield_escaped_braces(self.prompt)
+            self.variables = regex.findall(r"\{(.*?)\}", shielded)
         except Exception as e:
             logger.error(
                 (
@@ -239,7 +258,9 @@ class PromptBase:
                     f"Allowed: {list(self.variables)}"
                 )
 
-        result = base
+        # Shield escaped braces (``\{`` / ``\}``) so they are neither treated
+        # as variable delimiters nor mangled by the replace() calls below.
+        result = _shield_escaped_braces(base)
 
         for key in self.variables:
             if key in variables and variables[key] is not None:
@@ -267,14 +288,16 @@ class PromptBase:
                     logger.warning(
                         f"Unresolved macro '<<{unmatched}>>' in rendered prompt for {self.name}."
                     )
-        return result
+
+        # Turn shielded escapes back into literal braces for the final output.
+        return _restore_escaped_braces(result)
 
     def get_prompt(self, variables: dict = {}, no_warning: bool = False) -> str:
         """Get the filled prompt string with provided (or default) variables and macros."""
         return self._get_prompt(self.prompt, variables, no_warning=no_warning)
 
     def __str__(self) -> str:
-        result = self.prompt
+        result = _shield_escaped_braces(self.prompt)
 
         for key in self.variables:
             if (
@@ -286,15 +309,8 @@ class PromptBase:
         for key, v in (self.macros or {}).items():
             result = result.replace(key, str(v))
 
-        return result
+        return _restore_escaped_braces(result)
 
     def __call__(self, variables: dict = {}, no_warning: bool = False) -> str:
         """Allow prompt instances to be called like a function to render the prompt."""
         return self.get_prompt(variables, no_warning=no_warning)
-
-    @staticmethod
-    def _escape_braces(line: str) -> str:
-        """Make unmatched { or } into double braces for safe formatting."""
-        escaped = regex.sub(r"(?<!{){(?!{)", "{{", line)
-        escaped = regex.sub(r"(?<!})}(?!})", "}}", escaped)
-        return escaped

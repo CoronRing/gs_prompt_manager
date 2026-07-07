@@ -57,7 +57,9 @@ A `PromptGroup` is a named bundle of related `PromptBase` instances (for example
 
 ### Variables
 
-User-supplied values in your prompts, denoted by `{variable_name}`.
+User-supplied values in your prompts, denoted by `{variable_name}`. To keep a
+literal brace out of substitution, escape it with a backslash (`\{`, `\}`) — see
+[Escaping Literal Braces](#escaping-literal-braces).
 
 ### Macros
 
@@ -485,6 +487,41 @@ def set_variable_defaults(self):
         "body": ""
     }
 ```
+
+### Escaping Literal Braces
+
+Sometimes a template needs literal curly braces that should *not* be treated as
+variables — for example when the prompt instructs an LLM to emit JSON. Escape
+them with a backslash: `\{` renders as a literal `{` and `\}` as a literal `}`.
+
+Escaped braces are ignored by variable auto-extraction and never require a value,
+while real `{variables}` in the same template are substituted normally:
+
+```python
+class JsonPrompt(PromptBase):
+    def set_prompt(self):
+        # Use a raw string (r"...") so Python keeps the backslashes verbatim.
+        return r'Respond with JSON like \{"answer": "..."\} for the topic {topic}.'
+
+    def set_variable_defaults(self):
+        self.set_variable_defaults_empty()
+
+    def set_name(self):
+        self.name = "JsonPrompt"
+
+prompt = JsonPrompt()
+print(prompt.variables)              # ['topic']  — the escaped braces are not variables
+print(prompt({"topic": "biology"}))
+# Respond with JSON like {"answer": "..."} for the topic biology.
+```
+
+> **Tip:** Write the template as a raw string (`r"..."`) or double the backslash
+> (`"\\{"`). A bare `"\{"` in a normal Python string triggers a `SyntaxWarning`
+> on Python 3.12+ because `\{` is not a recognized escape sequence (it still
+> works, but the warning is noisy).
+>
+> Escaping applies only to `{ }` variable delimiters. Macro delimiters (`<< >>`)
+> are matched literally against the `macros` dict and need no escaping.
 
 ### Macros (Class-Owned)
 

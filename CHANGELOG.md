@@ -2,6 +2,16 @@
 
 All notable changes to gs_prompt_manager will be documented in this file. Only keep code changes here.
 
+## [0.0.9]
+
+### Added
+
+- Brace escaping in prompt templates: `\{` / `\}` render as literal braces and are excluded from variable auto-extraction and substitution, so a `\{...\}` token never becomes a required variable. Applies to `get_prompt`, `__call__`, and `__str__`.
+
+### Removed
+
+- Unused `PromptBase._escape_braces` helper (dead code implementing a conflicting double-brace convention)
+
 ## [0.0.8]
 
 ### Changed
