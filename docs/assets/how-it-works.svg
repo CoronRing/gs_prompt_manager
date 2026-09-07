@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 360" width="1040" height="360" role="img" aria-label="Flow diagram: prompt classes in your files are discovered by PromptManager, which instantiates them and resolves them into named groups keyed by variant">
+  <title>How gs_prompt_manager resolves your files into prompt groups</title>
+  <defs>
+    <style>
+      .t { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .m { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+      .card { fill: #1e140d; stroke: #43301f; stroke-width: 1.5; }
+      .hdr { font-size: 14px; font-weight: 700; fill: #fdba74; letter-spacing: 0.06em; }
+      .code { font-size: 13px; fill: #e6d6c8; }
+      .cls { font-size: 13px; fill: #f0883e; }
+      .note { font-size: 13px; fill: #bfae9f; }
+      .key { font-size: 12px; fill: #ffb86b; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#ea580c"/>
+    </marker>
+  </defs>
+
+  <rect width="1040" height="360" fill="#160f0a"/>
+
+  <!-- 1. your files -->
+  <rect class="card" x="40" y="50" width="270" height="260" rx="14"/>
+  <text class="t hdr" x="60" y="82">YOUR FILES</text>
+  <text class="m code" x="60" y="116">prompts/reviewer.py</text>
+  <text class="m cls"  x="60" y="140">  class ReviewerSystem</text>
+  <text class="m cls"  x="60" y="164">  class ReviewerChat</text>
+  <text class="m cls"  x="60" y="188">  class ReviewerFinalCall</text>
+  <text class="m code" x="60" y="222">prompts/tone.py</text>
+  <text class="m cls"  x="60" y="246">  class ToneSystem</text>
+  <text class="t note" x="60" y="284">no registry, no YAML,</text>
+  <text class="t note" x="60" y="300">no import wiring</text>
+
+  <line x1="316" y1="180" x2="364" y2="180" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 2. the manager -->
+  <rect class="card" x="370" y="50" width="300" height="260" rx="14"/>
+  <text class="t hdr" x="390" y="82">ONE CALL</text>
+  <text class="m code" x="390" y="116">PromptManager("./prompts")</text>
+  <g>
+    <circle cx="396" cy="152" r="3" fill="#ea580c"/>
+    <text class="t note" x="410" y="157">walks every .py file it finds</text>
+    <circle cx="396" cy="184" r="3" fill="#ea580c"/>
+    <text class="t note" x="410" y="189">collects PromptBase subclasses</text>
+    <circle cx="396" cy="216" r="3" fill="#ea580c"/>
+    <text class="t note" x="410" y="221">instantiates and validates each</text>
+    <circle cx="396" cy="248" r="3" fill="#ea580c"/>
+    <text class="t note" x="410" y="253">resolves them into named groups</text>
+  </g>
+  <text class="t note" x="390" y="292" fill="#8d7b6c">bad prompt? logged, not fatal</text>
+
+  <line x1="676" y1="180" x2="724" y2="180" stroke="#ea580c" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- 3. what you call -->
+  <rect class="card" x="730" y="50" width="270" height="260" rx="14"/>
+  <text class="t hdr" x="750" y="82">WHAT YOU CALL</text>
+
+  <text class="m code" x="750" y="116" fill="#fdba74">m.Reviewer</text>
+  <g>
+    <rect x="750" y="128" width="62" height="24" rx="12" fill="#2c1b10" stroke="#7c3a12"/>
+    <text class="m key" x="781" y="144" text-anchor="middle">system</text>
+    <rect x="820" y="128" width="48" height="24" rx="12" fill="#2c1b10" stroke="#7c3a12"/>
+    <text class="m key" x="844" y="144" text-anchor="middle">chat</text>
+    <rect x="876" y="128" width="68" height="24" rx="12" fill="#2c1b10" stroke="#7c3a12"/>
+    <text class="m key" x="910" y="144" text-anchor="middle">verdict</text>
+  </g>
+
+  <text class="m code" x="750" y="196" fill="#fdba74">m.Tone</text>
+  <rect x="750" y="208" width="62" height="24" rx="12" fill="#2c1b10" stroke="#7c3a12"/>
+  <text class="m key" x="781" y="224" text-anchor="middle">system</text>
+
+  <line x1="750" y1="256" x2="980" y2="256" stroke="#43301f" stroke-width="1.5"/>
+  <text class="m code" x="750" y="284" font-size="12" xml:space="preserve">m.Reviewer.system(</text>
+  <text class="m code" x="750" y="300" font-size="12" xml:space="preserve">    {"language": "Rust"})  &#8594;  str</text>
+</svg>

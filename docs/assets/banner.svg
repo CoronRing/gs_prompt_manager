@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="1200" height="360" role="img" aria-label="gs_prompt_manager — one home for every prompt in your LLM app: found on disk, grouped by variant, rendered on call">
+  <title>gs_prompt_manager</title>
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="52%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.20" cy="0.5" r="0.78">
+      <stop offset="0%" stop-color="#ea580c" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0"/>
+    </linearGradient>
+    <style>
+      .t { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+      .m { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="360" fill="#160f0a"/>
+  <rect width="1200" height="360" fill="url(#glow)"/>
+
+  <g transform="translate(76 96) scale(0.328)">
+    <rect width="512" height="512" rx="112" fill="url(#mark)"/>
+    <g fill="none" stroke="#ffffff" stroke-width="22" stroke-linecap="round">
+      <path d="M162 136 C 130 136, 140 234, 112 256 C 140 278, 130 376, 162 376"/>
+      <path d="M350 136 C 382 136, 372 234, 400 256 C 372 278, 382 376, 350 376"/>
+    </g>
+    <g fill="#ffffff">
+      <rect x="188" y="192" width="136" height="26" rx="13"/>
+      <rect x="188" y="243" width="80" height="26" rx="13"/>
+      <rect x="188" y="294" width="104" height="26" rx="13" opacity="0.7"/>
+    </g>
+    <rect x="280" y="243" width="44" height="26" rx="13" fill="#7c2d12" stroke="#ffffff" stroke-width="6"/>
+  </g>
+
+  <text class="m" x="290" y="160" font-size="54" font-weight="700" fill="#fdf6f0"
+        textLength="556" lengthAdjust="spacingAndGlyphs">gs_prompt_manager</text>
+
+  <rect x="292" y="184" width="300" height="3" rx="1.5" fill="url(#rule)"/>
+
+  <text class="t" x="290" y="230" font-size="27" font-weight="600" fill="#fdba74"
+        textLength="520" lengthAdjust="spacingAndGlyphs">One home for every prompt in your LLM app</text>
+  <text class="t" x="290" y="266" font-size="20" fill="#bfa89a"
+        textLength="484" lengthAdjust="spacingAndGlyphs">found on disk, grouped by variant, rendered on call</text>
+
+  <g transform="translate(290 296)">
+    <rect x="0" y="0" width="120" height="30" rx="15" fill="#2a1a10" stroke="#7c3a12" stroke-width="1.5"/>
+    <text class="m" x="60" y="20" font-size="14" fill="#fdba74" text-anchor="middle" textLength="92" lengthAdjust="spacingAndGlyphs">Python 3.8+</text>
+
+    <rect x="132" y="0" width="120" height="30" rx="15" fill="#2a1a10" stroke="#7c3a12" stroke-width="1.5"/>
+    <text class="m" x="192" y="20" font-size="14" fill="#fdba74" text-anchor="middle" textLength="92" lengthAdjust="spacingAndGlyphs">zero config</text>
+
+    <rect x="264" y="0" width="138" height="30" rx="15" fill="#2a1a10" stroke="#7c3a12" stroke-width="1.5"/>
+    <text class="m" x="333" y="20" font-size="14" fill="#fdba74" text-anchor="middle" textLength="110" lengthAdjust="spacingAndGlyphs">prompt groups</text>
+
+    <rect x="414" y="0" width="112" height="30" rx="15" fill="#2a1a10" stroke="#7c3a12" stroke-width="1.5"/>
+    <text class="m" x="470" y="20" font-size="14" fill="#fdba74" text-anchor="middle" textLength="84" lengthAdjust="spacingAndGlyphs">Apache-2.0</text>
+  </g>
+
+  <!-- decorative graph: prompt files on the left, one manager, group keys on the right -->
+  <g opacity="0.55" stroke="#9a3412" fill="none" stroke-width="2">
+    <path d="M900 108 C 960 108, 968 180, 1020 180"/>
+    <path d="M900 180 H 1020"/>
+    <path d="M900 252 C 960 252, 968 180, 1020 180"/>
+    <path d="M1020 180 C 1076 180, 1084 108, 1140 108"/>
+    <path d="M1020 180 H 1140"/>
+    <path d="M1020 180 C 1076 180, 1084 252, 1140 252"/>
+  </g>
+  <g fill="#3b1d0b" stroke="#f97316" stroke-width="2">
+    <circle cx="900" cy="108" r="9"/>
+    <circle cx="900" cy="180" r="9"/>
+    <circle cx="900" cy="252" r="9"/>
+    <circle cx="1140" cy="108" r="9"/>
+    <circle cx="1140" cy="180" r="9"/>
+    <circle cx="1140" cy="252" r="9"/>
+  </g>
+  <circle cx="1020" cy="180" r="16" fill="#ea580c" stroke="#fdba74" stroke-width="2.5"/>
+</svg>

@@ -754,4 +754,4 @@ pip install -e .
 ## Next Steps
 
 - See [Examples](examples.md) for real-world usage patterns
-- Read [Contributing Guide](../CONTRIBUTING.md) to contribute to the project
+- Read [Contributing Guide](https://github.com/CoronRing/gs_prompt_manager/blob/main/CONTRIBUTING.md) to contribute to the project

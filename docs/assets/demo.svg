@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 592" width="760" height="592" role="img" aria-label="Terminal recording: installing gs-prompt-manager, then a Python session where PromptManager discovers the Reviewer group and renders its system and verdict prompts">
+  <title>gs_prompt_manager in a Python session</title>
+  <defs><style>
+    .m { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; font-size: 15px; }
+    .chrome { font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 13px; }
+    @keyframes k0{0%{opacity:0}1.92%,100%{opacity:1}}.l0{opacity:0;animation:k0 15.6s linear infinite}
+    @keyframes k1{0%,7.69%{opacity:0}9.62%,100%{opacity:1}}.l1{opacity:0;animation:k1 15.6s linear infinite}
+    @keyframes k2{0%,8.97%{opacity:0}10.90%,100%{opacity:1}}.l2{opacity:0;animation:k2 15.6s linear infinite}
+    @keyframes k3{0%,14.74%{opacity:0}16.67%,100%{opacity:1}}.l3{opacity:0;animation:k3 15.6s linear infinite}
+    @keyframes k4{0%,21.15%{opacity:0}23.08%,100%{opacity:1}}.l4{opacity:0;animation:k4 15.6s linear infinite}
+    @keyframes k5{0%,27.56%{opacity:0}29.49%,100%{opacity:1}}.l5{opacity:0;animation:k5 15.6s linear infinite}
+    @keyframes k6{0%,28.85%{opacity:0}30.77%,100%{opacity:1}}.l6{opacity:0;animation:k6 15.6s linear infinite}
+    @keyframes k7{0%,34.62%{opacity:0}36.54%,100%{opacity:1}}.l7{opacity:0;animation:k7 15.6s linear infinite}
+    @keyframes k8{0%,38.46%{opacity:0}40.38%,100%{opacity:1}}.l8{opacity:0;animation:k8 15.6s linear infinite}
+    @keyframes k9{0%,44.23%{opacity:0}46.15%,100%{opacity:1}}.l9{opacity:0;animation:k9 15.6s linear infinite}
+    @keyframes k10{0%,50.00%{opacity:0}51.92%,100%{opacity:1}}.l10{opacity:0;animation:k10 15.6s linear infinite}
+    @keyframes k11{0%,51.28%{opacity:0}53.21%,100%{opacity:1}}.l11{opacity:0;animation:k11 15.6s linear infinite}
+    @keyframes k12{0%,58.33%{opacity:0}60.26%,100%{opacity:1}}.l12{opacity:0;animation:k12 15.6s linear infinite}
+    @keyframes k13{0%,60.58%{opacity:0}62.50%,100%{opacity:1}}.l13{opacity:0;animation:k13 15.6s linear infinite}
+    @keyframes k14{0%,62.82%{opacity:0}64.74%,100%{opacity:1}}.l14{opacity:0;animation:k14 15.6s linear infinite}
+    @keyframes k15{0%,69.23%{opacity:0}71.15%,100%{opacity:1}}.l15{opacity:0;animation:k15 15.6s linear infinite}
+    @keyframes k16{0%,70.51%{opacity:0}72.44%,100%{opacity:1}}.l16{opacity:0;animation:k16 15.6s linear infinite}
+    @keyframes k17{0%,76.92%{opacity:0}78.85%,100%{opacity:1}}.l17{opacity:0;animation:k17 15.6s linear infinite}
+    @keyframes blink{0%,80.77%{opacity:0}80.87%,100%{opacity:1}}.cursor{opacity:0;animation:blink 15.6s steps(1) infinite}
+  </style></defs>
+
+  <rect width="760" height="592" rx="10" fill="#160f0a" stroke="#3d2a1c"/>
+  <path d="M0 40 V10 a10 10 0 0 1 10 -10 H750 a10 10 0 0 1 10 10 V40 Z" fill="#231710"/>
+  <line x1="0" y1="40" x2="760" y2="40" stroke="#3d2a1c"/>
+  <circle cx="22" cy="20" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="20" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="20" r="6" fill="#28c840"/>
+  <text class="chrome" x="380" y="25" fill="#a08b7a" text-anchor="middle">python — ./prompts</text>
+
+  <text class="m l0" y="84.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="18.0" lengthAdjust="spacingAndGlyphs">$ </tspan><tspan x="44.0" fill="#f7f1ea" textLength="261.0" lengthAdjust="spacingAndGlyphs">pip install gs-prompt-manager</tspan></text>
+  <text class="m l1" y="110.0" xml:space="preserve"></text>
+  <text class="m l2" y="136.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="18.0" lengthAdjust="spacingAndGlyphs">$ </tspan><tspan x="44.0" fill="#f7f1ea" textLength="54.0" lengthAdjust="spacingAndGlyphs">python</tspan></text>
+  <text class="m l3" y="162.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="387.0" lengthAdjust="spacingAndGlyphs">from gs_prompt_manager import PromptManager</tspan></text>
+  <text class="m l4" y="188.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="270.0" lengthAdjust="spacingAndGlyphs">m = PromptManager("./prompts")</tspan></text>
+  <text class="m l5" y="214.0" xml:space="preserve"></text>
+  <text class="m l6" y="240.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="234.0" lengthAdjust="spacingAndGlyphs">m.get_prompt_group_names()</tspan></text>
+  <text class="m l7" y="266.0" xml:space="preserve"><tspan x="26.0" fill="#ffb86b" textLength="108.0" lengthAdjust="spacingAndGlyphs">['Reviewer']</tspan></text>
+  <text class="m l8" y="292.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="261.0" lengthAdjust="spacingAndGlyphs">m.Reviewer.get_prompt_names()</tspan></text>
+  <text class="m l9" y="318.0" xml:space="preserve"><tspan x="26.0" fill="#ffb86b" textLength="261.0" lengthAdjust="spacingAndGlyphs">['chat', 'verdict', 'system']</tspan></text>
+  <text class="m l10" y="344.0" xml:space="preserve"></text>
+  <text class="m l11" y="370.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="414.0" lengthAdjust="spacingAndGlyphs">print(m.Reviewer.system({"language": "Rust"}))</tspan></text>
+  <text class="m l12" y="396.0" xml:space="preserve"><tspan x="26.0" fill="#cdbfb3" textLength="279.0" lengthAdjust="spacingAndGlyphs">You are a senior Rust reviewer.</tspan></text>
+  <text class="m l13" y="422.0" xml:space="preserve"><tspan x="26.0" fill="#cdbfb3" textLength="351.0" lengthAdjust="spacingAndGlyphs">Focus on correctness first, style last.</tspan></text>
+  <text class="m l14" y="448.0" xml:space="preserve"><tspan x="26.0" fill="#cdbfb3" textLength="324.0" lengthAdjust="spacingAndGlyphs">Session started 2026-09-07 01:13:24.</tspan></text>
+  <text class="m l15" y="474.0" xml:space="preserve"></text>
+  <text class="m l16" y="500.0" xml:space="preserve"><tspan x="26.0" fill="#f0883e" textLength="36.0" lengthAdjust="spacingAndGlyphs">&gt;&gt;&gt; </tspan><tspan x="62.0" fill="#f7f1ea" textLength="243.0" lengthAdjust="spacingAndGlyphs">print(m.Reviewer.verdict())</tspan></text>
+  <text class="m l17" y="526.0" xml:space="preserve"><tspan x="26.0" fill="#cdbfb3" textLength="432.0" lengthAdjust="spacingAndGlyphs">Answer with exactly one word: approve or reject.</tspan></text>
+
+  <text class="m cursor" x="26.0" y="552.0" fill="#f0883e" xml:space="preserve">&gt;&gt;&gt; <tspan fill="#f7f1ea">&#9608;</tspan></text>
+</svg>

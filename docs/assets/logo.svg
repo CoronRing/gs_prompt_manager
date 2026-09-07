@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="gs_prompt_manager logo: a prompt template held between curly braces, with one line carrying a variable slot">
+  <title>gs_prompt_manager</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="52%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#sheen)"/>
+
+  <!-- the braces: a template is whatever sits between them -->
+  <g fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round">
+    <path d="M156 146 C 128 146, 136 236, 110 256 C 136 276, 128 366, 156 366"/>
+    <path d="M356 146 C 384 146, 376 236, 402 256 C 376 276, 384 366, 356 366"/>
+  </g>
+
+  <!-- three template lines; the middle one ends in a variable slot -->
+  <g fill="#ffffff">
+    <rect x="190" y="196" width="132" height="28" rx="14"/>
+    <rect x="190" y="242" width="72" height="28" rx="14"/>
+    <rect x="190" y="288" width="96" height="28" rx="14" opacity="0.55"/>
+  </g>
+  <rect x="276" y="242" width="46" height="28" rx="14" fill="#7c2d12" stroke="#ffffff" stroke-width="7"/>
+</svg>

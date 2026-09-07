@@ -2,6 +2,12 @@
 
 All notable changes to gs_prompt_manager will be documented in this file. Only keep code changes here.
 
+## [0.0.10]
+
+No changes to the library. This release refreshes the project README, which is
+also the PyPI description: new logo, banner and animated demo, a rewritten
+walkthrough, a runnable `examples/` directory, and corrected documentation links.
+
 ## [0.0.9]
 
 ### Added
